@@ -12,7 +12,8 @@ Para entender o estado atual, leia nesta ordem:
 4. `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md` — baseline PostgreSQL física;
 5. `architecture/OferBus_Identity_and_Tenancy_v0.1.md` — autenticação substituível, tenancy explícita e autorização;
 6. `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md` — fila, worker, retries, idempotência e progresso;
-7. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
+7. `decisions/ADR-0005-ai-provider-and-tool-boundary.md` — fronteira provider-neutral do Copilot e ferramentas estruturadas;
+8. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
 
 ## Estado da materialização
 
@@ -20,8 +21,8 @@ Para entender o estado atual, leia nesta ordem:
 - **Phase A.2 — Persistence Baseline:** concluída;
 - **Phase A.3 — Identity and Tenancy Boundary:** concluída;
 - **Phase A.4 — Asynchronous Computation Boundary:** concluída;
-- **Phase A.5 — AI and Tool Boundary:** próxima;
-- **Phase A.6 — Quality Gate and Local Startup:** pendente.
+- **Phase A.5 — AI and Tool Boundary:** concluída;
+- **Phase A.6 — Quality Gate and Local Startup:** próxima.
 
 ## Arqueologia
 
@@ -61,12 +62,13 @@ Para entender o estado atual, leia nesta ordem:
 - `architecture/OferBus_Identity_and_Tenancy_v0.1.md`
 - `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md`
 
-## Persistência moderna
+## Persistência e execução moderna
 
 - `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md`
 - `persistence/OferBus_PostgreSQL_Logical_DDL_v0.1.sql`
 - `../packages/oferbus-db/` — modelos SQLAlchemy da baseline física;
 - `../packages/oferbus-jobs/` — contrato de fila e implementação PostgreSQL inicial;
+- `../packages/oferbus-ai/` — contrato provider-neutral e ferramentas estruturadas do Copilot;
 - `../migrations/` — migrations Alembic; a baseline atual termina em `0003_async_computation`.
 
 PostgreSQL é a fonte de verdade. Arquivos nativos históricos são apenas fontes arqueológicas e, quando útil, entradas para migração única.
@@ -77,6 +79,7 @@ PostgreSQL é a fonte de verdade. Arquivos nativos históricos são apenas fonte
 - `decisions/ADR-0002-application-architecture-and-stack.md`
 - `decisions/ADR-0003-identity-tenancy-and-authorization.md`
 - `decisions/ADR-0004-postgresql-backed-asynchronous-computation.md`
+- `decisions/ADR-0005-ai-provider-and-tool-boundary.md`
 
 ## Reference core
 
