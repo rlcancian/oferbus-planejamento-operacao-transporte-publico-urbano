@@ -1,0 +1,28 @@
+[project]
+name = "oferbus-worker"
+version = "0.1.0"
+description = "OferBus asynchronous computation worker"
+requires-python = ">=3.13,<3.15"
+dependencies = [
+  "oferbus-db==0.1.0",
+  "oferbus-jobs==0.1.0",
+]
+
+[project.scripts]
+oferbus-worker = "oferbus_worker.main:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0,<10",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
