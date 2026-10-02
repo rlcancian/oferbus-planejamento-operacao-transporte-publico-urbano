@@ -1,0 +1,234 @@
+.panel {
+  grid-column: 1 / -1;
+  animation-delay: 110ms;
+}
+
+.statusGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.readOnly {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.42rem 0.62rem;
+  border: 1px solid rgba(224, 189, 118, 0.25);
+  border-radius: 999px;
+  background: rgba(224, 189, 118, 0.07);
+  color: #e7cb91;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.metaBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.metaBar span {
+  padding: 0.64rem 0.9rem;
+  border-right: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.025em;
+}
+
+.directionStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem 0;
+}
+
+.directionStrip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.42rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.018);
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
+.directionStrip b {
+  color: var(--accent-strong);
+  font-size: 0.65rem;
+  font-weight: 650;
+}
+
+.directionStrip i {
+  color: var(--muted-2);
+  font-style: normal;
+}
+
+.canvasWrap {
+  overflow-x: auto;
+  padding: 0.8rem 1rem 0.25rem;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  min-width: 900px;
+  height: auto;
+}
+
+.plotBackground {
+  fill: rgba(5, 15, 19, 0.55);
+  stroke: rgba(156, 197, 189, 0.12);
+}
+
+.timeGrid {
+  stroke: rgba(156, 197, 189, 0.105);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+
+.timeLabel,
+.timeLabelBottom,
+.terminalIndex,
+.tripLabel {
+  fill: #708a85;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.timeLabel,
+.timeLabelBottom {
+  font-size: 11px;
+}
+
+.terminalRail {
+  stroke: rgba(143, 171, 166, 0.36);
+  stroke-width: 1.25;
+}
+
+.terminalNode {
+  fill: var(--accent);
+  stroke: rgba(107, 226, 203, 0.24);
+  stroke-width: 7;
+}
+
+.terminalLabel {
+  fill: #dbe9e6;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.terminalIndex {
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tripGroup {
+  cursor: crosshair;
+}
+
+.tripLine {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.9;
+  transition: stroke-width 120ms ease, opacity 120ms ease, filter 120ms ease;
+}
+
+.tripGroup:hover .tripLine {
+  stroke-width: 5;
+  opacity: 1;
+  filter: drop-shadow(0 0 5px rgba(107, 226, 203, 0.28));
+}
+
+.tripPoint {
+  stroke-width: 0;
+  transition: r 120ms ease;
+}
+
+.tripGroup:hover .tripPoint {
+  r: 6px;
+}
+
+.tripLabel {
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.virtualTrip {
+  stroke: rgba(218, 231, 228, 0.35);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+}
+
+.express {
+  stroke-dasharray: 7 4;
+}
+
+.block1 { stroke: #6be2cb; fill: #6be2cb; }
+.block2 { stroke: #7fb7ff; fill: #7fb7ff; }
+.block3 { stroke: #e0bd76; fill: #e0bd76; }
+.block4 { stroke: #d692f0; fill: #d692f0; }
+.block5 { stroke: #f28d8d; fill: #f28d8d; }
+.block6 { stroke: #99d477; fill: #99d477; }
+.blockUnassigned { stroke: #879a96; fill: #879a96; }
+
+.legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  padding: 0.7rem 1rem 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+.legendTitle {
+  color: var(--muted-2);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legendSwatch {
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+}
+
+.legendNote {
+  margin-left: auto;
+  color: var(--muted-2);
+}
+
+@media (max-width: 760px) {
+  .statusGroup {
+    align-items: flex-end;
+    flex-direction: column;
+  }
+
+  .legendNote {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tripLine,
+  .tripPoint {
+    transition: none;
+  }
+}
