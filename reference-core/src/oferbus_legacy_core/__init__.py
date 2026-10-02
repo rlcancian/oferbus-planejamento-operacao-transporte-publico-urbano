@@ -18,21 +18,44 @@ from .traffic_curves import (
 from .typical_periods import TypicalPeriodsResult, typical_periods_code_2008, typical_periods_manual_2005
 from .timetable import PlannedTrip, DirectionPlanningData, MinimumTimetableConfig, minimum_timetable_2007_legacy
 from .operations import (
-    TripTypeFlag, LinkKind, OperationalTrip, encode_legacy_links, decode_legacy_links,
-    clear_non_manual_links, link_direct_trips_legacy, link_storage_legacy,
-    link_garages_legacy, allocate_fleet_legacy, build_basic_link_graph_legacy, vehicle_blocks,
+    TripTypeFlag,
+    LinkKind,
+    OperationalTrip,
+    encode_legacy_links,
+    decode_legacy_links,
+    clear_non_manual_links,
+    link_direct_trips_legacy,
+    link_storage_legacy,
+    link_garages_legacy,
+    allocate_fleet_legacy,
+    build_basic_link_graph_legacy,
+    vehicle_blocks,
 )
 from .trip_attributes import ExpressTravelParameters, complete_trip_attributes_legacy
 from .return_trips import create_return_trips_cria_1_legacy
+from .return_trips_cria2 import create_return_trips_cria_2_storage_branch_legacy
+from .fine_adjustment import fine_adjustment_one_minute_legacy
 from .service_level import (
-    service_level_label_legacy, stored_service_level_legacy, passengers_in_period_legacy,
-    previous_normal_departure_legacy, assign_service_levels_legacy,
+    service_level_label_legacy,
+    stored_service_level_legacy,
+    passengers_in_period_legacy,
+    previous_normal_departure_legacy,
+    assign_service_levels_legacy,
 )
 from .metrics import (
-    CostParameters, OccupancyExtreme, OperatingMetrics, monthly_cost_legacy,
-    projected_worst_occupancy_legacy, projected_mean_occupancy_rate_legacy,
-    projected_mean_occupancy_rate_normalized, calculate_project_metrics_legacy,
-    calculate_project_metrics_distance_corrected, calculate_observed_metrics_legacy,
+    CostParameters,
+    OccupancyExtreme,
+    OperatingMetrics,
+    monthly_cost_legacy,
+    projected_worst_occupancy_legacy,
+    projected_mean_occupancy_rate_legacy,
+    calculate_project_metrics_legacy,
+    calculate_project_metrics_distance_corrected,
+    calculate_observed_metrics_legacy,
+)
+from .occupancy_semantics import (
+    projected_mean_occupancy_rate_normalized,
+    projected_mean_operational_occupancy_rate_normalized,
 )
 
 __all__ = [
@@ -50,9 +73,12 @@ __all__ = [
     "vehicle_blocks", "service_level_label_legacy", "stored_service_level_legacy",
     "passengers_in_period_legacy", "previous_normal_departure_legacy",
     "assign_service_levels_legacy", "ExpressTravelParameters", "complete_trip_attributes_legacy",
-    "create_return_trips_cria_1_legacy", "CostParameters", "OccupancyExtreme", "OperatingMetrics",
-    "monthly_cost_legacy", "projected_worst_occupancy_legacy",
-    "projected_mean_occupancy_rate_legacy", "projected_mean_occupancy_rate_normalized",
+    "create_return_trips_cria_1_legacy", "create_return_trips_cria_2_storage_branch_legacy",
+    "fine_adjustment_one_minute_legacy",
+    "CostParameters", "OccupancyExtreme", "OperatingMetrics", "monthly_cost_legacy",
+    "projected_worst_occupancy_legacy", "projected_mean_occupancy_rate_legacy",
+    "projected_mean_occupancy_rate_normalized",
+    "projected_mean_operational_occupancy_rate_normalized",
     "calculate_project_metrics_legacy", "calculate_project_metrics_distance_corrected",
     "calculate_observed_metrics_legacy",
 ]
