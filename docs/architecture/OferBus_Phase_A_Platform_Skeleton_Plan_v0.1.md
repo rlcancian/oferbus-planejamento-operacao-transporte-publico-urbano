@@ -23,9 +23,24 @@ Materialized: provider-neutral `IdentityAdapter`, local-only development identit
 
 PostgreSQL Row-Level Security (RLS) was evaluated and is deliberately deferred until migration-owner and application-runtime database roles are separated. Composite tenant foreign keys and application authorization remain the active controls in the current development baseline.
 
-## Phase A.4 — asynchronous computation boundary — PENDENTE
+## Phase A.4 — asynchronous computation boundary — CONCLUÍDA
 
-Stable `ComputationRun` lifecycle, Python worker interface, queue selection, progress/event transport, retry/idempotency rules.
+Materialized:
+
+- PostgreSQL-backed durable queue selected for the initial deployment;
+- migration `0003_async_computation` and `computation_job` execution metadata;
+- `packages/oferbus-jobs` with a backend-neutral `JobQueue` contract and `PostgresComputationQueue` implementation;
+- organization-scoped idempotency key;
+- `FOR UPDATE SKIP LOCKED` concurrent claiming;
+- worker lease, heartbeat and crash recovery semantics;
+- bounded exponential retry policy and attempt limits;
+- Python worker process in `apps/worker`;
+- API submission/status endpoints under `/computations`;
+- Server-Sent Events (SSE) progress stream;
+- `platform-smoke` infrastructure handler only, explicitly not a planning algorithm;
+- unit/metadata tests for retry policy, worker lifecycle and queue invariants.
+
+Celery/Redis is not required for the initial VPS deployment. ADR-0004 defines measurable triggers for revisiting a dedicated broker while preserving the `JobQueue` contract.
 
 ## Phase A.5 — AI and tool boundary skeleton — PENDENTE
 
@@ -33,8 +48,10 @@ Provider-neutral LLM adapter, structured tool contract, command authorization/co
 
 ## Phase A.6 — quality gate and local startup — PENDENTE
 
-CI for web/API/reference-core/persistence, lint/type checking/test commands, dependency/security checks, reproducible local startup documentation/scripts and verified browser startup workflow.
+CI for web/API/reference-core/persistence/jobs/worker, lint/type checking/test commands, dependency/security checks, reproducible local startup documentation/scripts and verified browser startup workflow.
+
+A.6 must include an integrated smoke path that applies all migrations, seeds a development organization/user/scenario, submits `platform-smoke`, starts a worker and verifies terminal completion.
 
 ## Exit criteria for Phase A
 
-Phase A is complete only when web, API and PostgreSQL can run together locally; migrations are reproducible; tenant isolation is testable; a computation job can be submitted through an abstraction; the AI/tool boundary exists; and CI validates the skeleton. No planning-domain completeness is required until Phase B.
+Phase A is complete only when web, API and PostgreSQL can run together locally; migrations are reproducible; tenant isolation is testable; a computation job can be submitted through the queue abstraction and completed by a worker; the AI/tool boundary exists; and CI validates the skeleton. No planning-domain completeness is required until Phase B.
