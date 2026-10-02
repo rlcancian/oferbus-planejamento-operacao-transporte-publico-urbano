@@ -14,6 +14,7 @@ from oferbus_core import (
     SemanticLayer,
     VehiclePlanningInput,
     fingerprint,
+    planning_result_fingerprint,
     validate_planning_input,
 )
 
@@ -63,6 +64,7 @@ def test_reference_bridge_executes_characterized_normalized_slice() -> None:
     assert result.engine_id == "reference-bridge"
     assert result.input_fingerprint == fingerprint(planning_input)
     assert len(result.output_fingerprint) == 64
+    assert result.output_fingerprint == planning_result_fingerprint(result)
     assert result.trips
     assert result.effective_fleet >= 1
     assert all(item.vehicle_block > 0 for item in result.trips)
