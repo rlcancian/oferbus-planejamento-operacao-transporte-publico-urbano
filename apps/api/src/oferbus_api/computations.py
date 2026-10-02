@@ -11,7 +11,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
 
 from oferbus_core import ENGINE_ID, ENGINE_VERSION, fingerprint
-from oferbus_jobs import PostgresComputationQueue, RunSnapshot, RunSubmission, TERMINAL_STATUSES
+from oferbus_jobs import (
+    TERMINAL_STATUSES,
+    IdempotencyConflictError,
+    PostgresComputationQueue,
+    RunSnapshot,
+    RunSubmission,
+)
 from oferbus_planning import PlanningInputError, PlanningInputIntegrityError, PlanningInputNotFound, load_planning_input
 
 from .identity import Permission, Principal, require_permission
@@ -140,6 +146,8 @@ def submit_computation(
     queue = PostgresComputationQueue()
     try:
         snapshot = queue.submit(_submission(request, principal))
+    except IdempotencyConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except IntegrityError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
