@@ -13,6 +13,12 @@ if [[ ! -d .venv ]]; then
   exit 1
 fi
 
+NEXT_CLI="$ROOT/node_modules/next/dist/bin/next"
+if [[ ! -f "$NEXT_CLI" ]]; then
+  echo "ERROR: Next.js CLI not found at $NEXT_CLI. Run make bootstrap first." >&2
+  exit 1
+fi
+
 set -a
 source .env
 set +a
@@ -38,7 +44,10 @@ API_PID=$!
 oferbus-worker &
 WORKER_PID=$!
 
-PORT="$WEB_PORT" npm run web:dev &
+(
+  cd "$ROOT/apps/web"
+  exec node "$NEXT_CLI" dev -H 0.0.0.0 -p "$WEB_PORT"
+) &
 WEB_PID=$!
 
 echo "OferBus development services started:"
