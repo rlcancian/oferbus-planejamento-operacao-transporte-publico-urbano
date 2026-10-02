@@ -1,12 +1,8 @@
-# OferBus Computational Reconstruction Reference v0.2
+# OferBus Computational Reconstruction Reference v0.3
 
-This is an **archaeological/characterization harness**, not the final OferBus architecture.
-It ports source-confirmed behavior from the 2008c Visual Basic code into small,
-deterministic Python components so that historical semantics can be tested independently
-of UI, persistence, or any future web stack.
+This is an **archaeological/characterization harness**, not the final OferBus architecture. It ports source-confirmed behavior from the 2008c Visual Basic code into small, deterministic Python components so historical semantics can be tested independently of UI, persistence, or any future web stack.
 
-Python is being used here as a scientific reconstruction language only. It is not yet a
-binding decision for the production architecture.
+Python is being used here as a scientific reconstruction language only. It is not yet a binding decision for the production architecture.
 
 ## Implemented
 
@@ -25,55 +21,40 @@ binding decision for the production architecture.
 - parabola, logarithmic and exponential >=3-year regression branch;
 - historical DQM/MSE-based model selection.
 
-### Time and renewal curves
+### Time, renewal and MPTDC
 
-- original TPV interpolation from observed trips;
-- TPV smoothing through the common legacy adjustment algorithm;
-- explicit `legacy` and `corrected` variants for the final `-2` sentinel anomaly;
+- TPV interpolation and smoothing;
+- explicit legacy/corrected variants for the final `-2` sentinel anomaly;
 - constant and variable renewal-index curves;
-- conversion `passengers / passengers-on-critical-section` with IR >= 1;
-- adjusted IR curve.
-
-### MPTDC
-
-Two semantics are deliberately maintained:
-
-- `code-2008c`: intermediate MDV level 2 and `AjustePeriodo * 2` horizontal bands;
-- `manual-2005`: documented intermediate MDV level 3 and number of bands equal to the selected degree.
-
-They are not silently reconciled because the legacy sources genuinely diverge.
+- code-2008c and Manual-2005 MPTDC variants maintained separately.
 
 ### Minimum timetable
 
-`minimum_timetable_2007_legacy` reconstructs the central procedure
-`MMARCHA1.Calcula_Quadro_Horarios_Minimo_2007`, including:
+`minimum_timetable_2007_legacy` reconstructs `MMARCHA1.Calcula_Quadro_Horarios_Minimo_2007`: minute-by-minute passenger accumulation, capacity/IR, maximum headway, terminals with/without storage, return trips, final anchoring and tail regularization. The return passenger-replay indexing defect can be preserved or corrected explicitly.
 
-- minute-by-minute passenger accumulation;
-- demand-dependent effective capacity;
-- renewal index;
-- maximum admissible headway;
-- terminals with and without storage;
-- opposite-direction vehicle arrival detection;
-- normal and return trips;
-- optional express return trips;
-- final anchor at the last observed departure;
-- legacy tail-headway regularization;
-- switchable preservation/correction of the passenger-replay indexing defect in return trips.
+### Complete operational trip and graph
 
-Still outside this reconstructed function are the subsequent historical stages:
-`Ajeitadinha_Brasileira_Horarios`, complete trip-attribute filling, journey linking,
-storage/garage linking, vehicle allocation, service-level calculation and crew scheduling.
+- normal and express complete-trip attributes;
+- named reconstruction of the `Tipo` bitfield;
+- typed entry/exit links replacing the opaque packed `Vinculos` integer internally;
+- direct trip linking;
+- storage linking;
+- garage completion;
+- logical vehicle assignment and vehicle blocks;
+- effective fleet size derived from those blocks;
+- per-trip service-level calculation, including historical `F1+ → 5` information loss.
+
+Still pending for the complete historical march-diagram pipeline are `Cria_1`, `Cria_2`, `Verifica_Ida_Garagem` and fine adjustment. They are being reconstructed separately because the recovered source contains candidate defects in those stages.
 
 ## Validation
 
 Run:
 
 ```bash
-python -m pytest
+python -m pytest -q
+python -m compileall -q src tests
 ```
 
-Current result: **15 tests passing**.
+Current result: **28 tests passing** and compileall **PASS**.
 
-These tests are source-derived characterization fixtures. A passing suite means the
-reference implementation satisfies the current recovered contracts; it does **not** yet
-prove numerical identity with an executable historical OferBus binary.
+These are source-derived characterization/specification fixtures. A passing suite demonstrates conformance with the currently recovered contracts; it does **not** yet prove numerical identity with an executable historical OferBus binary.
