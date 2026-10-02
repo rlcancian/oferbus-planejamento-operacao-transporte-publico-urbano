@@ -1,6 +1,7 @@
 from .queue import (
     CLAIMABLE_STATUSES,
     TERMINAL_STATUSES,
+    IdempotencyConflictError,
     JobQueue,
     PostgresComputationQueue,
     RunSnapshot,
@@ -11,6 +12,7 @@ from .queue import (
 __all__ = [
     "CLAIMABLE_STATUSES",
     "TERMINAL_STATUSES",
+    "IdempotencyConflictError",
     "JobQueue",
     "PostgresComputationQueue",
     "RunSnapshot",
