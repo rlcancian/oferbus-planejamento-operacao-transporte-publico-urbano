@@ -57,7 +57,7 @@ def fetch_html(url: str, timeout: float) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Validate the rendered OferBus Phase B planning workspace")
+    parser = argparse.ArgumentParser(description="Validate the rendered OferBus planning workspace")
     parser.add_argument("--web-url", default="http://127.0.0.1:3010")
     parser.add_argument("--timeout", type=float, default=30.0)
     args = parser.parse_args()
@@ -71,6 +71,10 @@ def main() -> None:
         "DEV-001 · Linha de Desenvolvimento OferBus",
         "Plano computado",
         "Normalizado",
+        "Gráfico de Marcha",
+        "somente leitura · C.1",
+        "Terminal Origem",
+        "Terminal Destino",
         "Horários planejados",
         "Blocos de veículo",
         "fingerprint verificado",
@@ -78,6 +82,7 @@ def main() -> None:
     forbidden = [
         "O resultado ainda não pode ser carregado.",
         "Ainda não há um plano calculado.",
+        "Gráfico de Marcha indisponível",
     ]
 
     missing = [item for item in expected if item not in text]
@@ -88,7 +93,7 @@ def main() -> None:
             {
                 "missing": missing,
                 "unexpected_empty_or_error_states": present_forbidden,
-                "document_excerpt": text[:1600],
+                "document_excerpt": text[:2200],
             }
         )
 
