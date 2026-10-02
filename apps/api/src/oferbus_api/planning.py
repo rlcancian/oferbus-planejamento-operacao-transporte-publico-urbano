@@ -194,7 +194,7 @@ def _observation_batches(request_directions: list[DatasetDirectionRequest]) -> t
     )
 
 
-def _http_error(exc: PlanningInputError) -> HTTPException:
+def _http_error(exc: Exception) -> HTTPException:
     if isinstance(exc, PlanningInputNotFound):
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     if isinstance(exc, PlanningInputIntegrityError):
@@ -227,7 +227,7 @@ def create_dataset(
                 directions=_observation_batches(request.directions),
             )
         )
-    except PlanningInputError as exc:
+    except (PlanningInputError, ValueError, NotImplementedError) as exc:
         raise _http_error(exc) from exc
     return ObservedDatasetCreateResponse(**created.__dict__)
 
@@ -254,7 +254,7 @@ def create_dataset_revision(
                 directions=_observation_batches(request.directions),
             )
         )
-    except PlanningInputError as exc:
+    except (PlanningInputError, ValueError, NotImplementedError) as exc:
         raise _http_error(exc) from exc
     return ObservedDatasetCreateResponse(**created.__dict__)
 
@@ -296,7 +296,7 @@ def create_revision(
                 ),
             )
         )
-    except PlanningInputError as exc:
+    except (PlanningInputError, ValueError, NotImplementedError) as exc:
         raise _http_error(exc) from exc
 
     return PlanningInputResponse(
@@ -317,7 +317,7 @@ def get_revision_input(
 ) -> PlanningInputResponse:
     try:
         planning_input = load_planning_input(principal.organization_id, scenario_revision_id)
-    except PlanningInputError as exc:
+    except (PlanningInputError, ValueError, NotImplementedError) as exc:
         raise _http_error(exc) from exc
 
     return PlanningInputResponse(
