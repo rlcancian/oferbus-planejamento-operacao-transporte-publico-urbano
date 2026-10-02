@@ -128,8 +128,8 @@ def main() -> None:
             "confirmed": True,
             "arguments": {
                 "scenario_revision_id": str(SCENARIO_REVISION_ID),
-                "idempotency_key": "phase-b4-platform-smoke-v1",
-                "message": "Phase B4 platform regression smoke passed",
+                "idempotency_key": "phase-b5-platform-smoke-v1",
+                "message": "Phase B5 platform regression smoke passed",
                 "delay_seconds": 0.1,
             },
         },
@@ -146,7 +146,7 @@ def main() -> None:
         body={
             "scenario_revision_id": str(PLANNING_SCENARIO_REVISION_ID),
             "run_kind": "core-planning",
-            "idempotency_key": "phase-b4-core-planning-v1",
+            "idempotency_key": "phase-b5-core-planning-v1",
             "max_attempts": 2,
         },
     )
@@ -188,6 +188,17 @@ def main() -> None:
     assert persisted.get("semantic_layer") == "normalized", persisted
     assert persisted.get("input_fingerprint") == planning_input_fingerprint, persisted
     assert persisted.get("output_fingerprint") == output_fingerprint, persisted
+
+    context = persisted.get("context")
+    assert isinstance(context, dict), persisted
+    assert context.get("project_name") == "OferBus Development Project", context
+    assert context.get("scenario_name") == "Phase B Core Planning Fixture", context
+    assert context.get("scenario_revision_id") == str(PLANNING_SCENARIO_REVISION_ID), context
+    lines = context.get("lines")
+    assert isinstance(lines, list) and len(lines) == 1, context
+    assert lines[0].get("public_code") == "DEV-001", lines
+    assert lines[0].get("name") == "Linha de Desenvolvimento OferBus", lines
+
     persisted_trips = persisted.get("trips")
     persisted_blocks = persisted.get("vehicle_blocks")
     persisted_metrics = persisted.get("metrics")
@@ -196,6 +207,12 @@ def main() -> None:
     assert isinstance(persisted_metrics, dict), persisted
     assert persisted_metrics.get("total_trips") == diagnostics["trip_count"], persisted_metrics
     assert persisted_metrics.get("effective_fleet") == diagnostics["effective_fleet"], persisted_metrics
+
+    _, latest = request_json("GET", f"{api_url}/results/latest", authenticated=True)
+    assert isinstance(latest, dict), latest
+    assert latest.get("computation_run_id") == planning_run_id, latest
+    assert latest.get("output_fingerprint") == output_fingerprint, latest
+    assert latest.get("context") == context, latest
 
     print(
         json.dumps(
@@ -211,6 +228,8 @@ def main() -> None:
                 "result_snapshot_id": persisted.get("result_snapshot_id"),
                 "planning_trip_count": diagnostics.get("trip_count"),
                 "planning_effective_fleet": diagnostics.get("effective_fleet"),
+                "workspace_project": context.get("project_name"),
+                "workspace_scenario": context.get("scenario_name"),
                 "platform_run_id": platform_final.get("run_id"),
                 "ai_boundary": ai_status.get("boundary"),
             },
