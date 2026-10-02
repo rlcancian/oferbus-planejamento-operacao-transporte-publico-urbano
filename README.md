@@ -10,9 +10,9 @@ A implementação está na **Phase A — Platform Skeleton**:
 
 - **A.1 — Platform Skeleton:** concluída;
 - **A.2 — Persistence Baseline:** concluída;
-- **A.3 — Identity and Tenancy Boundary:** próxima;
-- **A.4 — Asynchronous Computation Boundary:** pendente;
-- **A.5 — AI and Tool Boundary:** pendente;
+- **A.3 — Identity and Tenancy Boundary:** concluída;
+- **A.4 — Asynchronous Computation Boundary:** concluída;
+- **A.5 — AI and Tool Boundary:** próxima;
 - **A.6 — Quality Gate and Local Startup:** pendente.
 
 ## Arquitetura aceita
@@ -22,23 +22,27 @@ A implementação está na **Phase A — Platform Skeleton**:
 - OferBus Core Python independente, determinístico e versionado;
 - PostgreSQL como fonte de verdade;
 - SQLAlchemy + Alembic + psycopg na camada de persistência Python;
-- workers Python para computações longas, com tecnologia de fila ainda em avaliação;
+- fila inicial de jobs apoiada em PostgreSQL, acessada por uma abstração `JobQueue`;
+- workers Python com lease, heartbeat, retry, idempotência e progresso por SSE;
 - SVG/D3 para engenharia 2D e Three.js/React Three Fiber para visualizações 3D quando agregarem valor;
 - OferBus Copilot/Planning Agent como componente nativo, sempre operando por ferramentas e comandos validados;
 - monólito modular, não microserviços prematuros.
 
-## Baseline PostgreSQL A.2
+## Fundação multiusuário
 
-A primeira migration física já cria organizações/usuários, municípios/operadores/terminais, linhas/sentidos, projetos, cenários/revisões e `ComputationRun`. As relações tenant-owned críticas usam foreign keys compostas com `organization_id` para impedir referências cruzadas entre organizações no próprio banco.
+A baseline física já inclui organizações/usuários, memberships, municípios/operadores/terminais, linhas/sentidos, projetos, cenários/revisões, `ComputationRun`, auditoria e metadados de execução assíncrona. As relações tenant-owned críticas usam foreign keys compostas com `organization_id` para impedir referências cruzadas entre organizações no próprio banco.
 
-A API expõe `/health` e `/ready`; a landing Next.js consulta `/ready` e indica visualmente quando PostgreSQL e a migration estão ativos.
+A autenticação possui fronteira substituível; o desenvolvimento usa um adaptador local explicitamente proibido em produção. A aplicação resolve uma organização ativa e aplica RBAC (`owner`, `admin`, `planner`, `viewer`).
+
+A API expõe `/health`, `/ready`, `/identity/me` e a fronteira `/computations`. A landing Next.js consulta `/ready` e indica visualmente quando PostgreSQL e migrations estão ativos.
 
 ## Estrutura
 
 - `apps/web/` — aplicação Next.js;
 - `apps/api/` — API FastAPI;
-- `apps/worker/` — fronteira para jobs assíncronos;
+- `apps/worker/` — worker Python para computações longas;
 - `packages/oferbus-db/` — persistência SQLAlchemy/PostgreSQL;
+- `packages/oferbus-jobs/` — contrato e implementação inicial da fila assíncrona;
 - `packages/oferbus-core/` — destino do motor computacional de produção;
 - `reference-core/` — implementação arqueológica executável e testes de caracterização;
 - `migrations/` — migrations Alembic;
