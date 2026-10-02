@@ -6,7 +6,12 @@ import time
 import urllib.error
 import urllib.request
 
-from dev_seed import ORGANIZATION_ID, SCENARIO_REVISION_ID, SUBJECT
+from dev_seed import (
+    ORGANIZATION_ID,
+    PLANNING_SCENARIO_REVISION_ID,
+    SCENARIO_REVISION_ID,
+    SUBJECT,
+)
 
 
 def request_json(
@@ -26,7 +31,7 @@ def request_json(
             {
                 "X-OferBus-Subject": SUBJECT,
                 "X-OferBus-Organization-Id": str(ORGANIZATION_ID),
-                "X-Correlation-Id": "phase-a6-integration-smoke",
+                "X-Correlation-Id": "phase-b-integration-smoke",
             }
         )
 
@@ -55,7 +60,7 @@ def wait_for_api(api_url: str, timeout: float) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run OferBus Phase A integrated smoke through HTTP + AI tool + worker")
+    parser = argparse.ArgumentParser(description="Run OferBus integrated platform and planning-input smoke")
     parser.add_argument("--api-url", default="http://127.0.0.1:8010")
     parser.add_argument("--timeout", type=float, default=30.0)
     args = parser.parse_args()
@@ -65,9 +70,26 @@ def main() -> None:
 
     _, ready = request_json("GET", f"{api_url}/ready")
     assert isinstance(ready, dict) and ready.get("status") == "ready", ready
+    assert ready.get("migration") == "0004_planning_inputs", ready
 
     _, identity = request_json("GET", f"{api_url}/identity/me", authenticated=True)
     assert isinstance(identity, dict) and identity.get("organization_id") == str(ORGANIZATION_ID), identity
+
+    _, planning = request_json(
+        "GET",
+        f"{api_url}/planning/scenario-revisions/{PLANNING_SCENARIO_REVISION_ID}/input",
+        authenticated=True,
+    )
+    assert isinstance(planning, dict), planning
+    assert planning.get("scenario_revision_id") == str(PLANNING_SCENARIO_REVISION_ID), planning
+    assert isinstance(planning.get("input_fingerprint"), str) and len(planning["input_fingerprint"]) == 64, planning
+    planning_input = planning.get("planning_input")
+    assert isinstance(planning_input, dict), planning
+    assert planning_input.get("semantic_layer") == "normalized", planning_input
+    directions = planning_input.get("directions")
+    assert isinstance(directions, list) and len(directions) == 1, planning_input
+    assert directions[0].get("direction_key") == "outbound", directions
+    assert len(directions[0].get("observations", [])) == 3, directions
 
     _, ai_status = request_json("GET", f"{api_url}/ai/status")
     assert isinstance(ai_status, dict) and ai_status.get("boundary") == "ready", ai_status
@@ -87,8 +109,8 @@ def main() -> None:
             "confirmed": True,
             "arguments": {
                 "scenario_revision_id": str(SCENARIO_REVISION_ID),
-                "idempotency_key": "phase-a6-integration-smoke-v1",
-                "message": "Phase A integrated smoke passed",
+                "idempotency_key": "phase-b-integration-smoke-v1",
+                "message": "Phase B planning-input smoke passed",
                 "delay_seconds": 0.1,
             },
         },
@@ -118,6 +140,8 @@ def main() -> None:
                 "status": "pass",
                 "migration": ready.get("migration"),
                 "organization_id": str(ORGANIZATION_ID),
+                "planning_scenario_revision_id": str(PLANNING_SCENARIO_REVISION_ID),
+                "planning_input_fingerprint": planning.get("input_fingerprint"),
                 "run_id": run_id,
                 "computation_status": final.get("status"),
                 "ai_boundary": ai_status.get("boundary"),
