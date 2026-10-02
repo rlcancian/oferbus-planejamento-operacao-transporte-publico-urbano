@@ -22,7 +22,7 @@ It is not a planning algorithm.
 
 ### `core-planning`
 
-Phase B.3 introduces the first real deterministic planning handler:
+The deterministic planning handler executes:
 
 ```text
 ComputationRun
@@ -30,24 +30,30 @@ ComputationRun
 → verify tenant + persisted fingerprint
 → verify queued semantic layer and engine version
 → execute ReferencePlanningAdapter / oferbus-core contract
-→ verify engine input fingerprint/provenance
-→ persist output fingerprint + technical diagnostics
+→ verify engine input/output fingerprints and provenance
+→ persist PlanRevision / PlannedTrip / VehicleBlock / ResultSnapshot
+→ reconstruct persisted PlanningResult and verify fingerprint
 → mark run succeeded
 ```
 
 The worker does **not** accept ad-hoc scientific parameters in the job payload. All planning inputs come from the immutable scenario revision created by the application boundary.
 
-The handler reports progress at meaningful boundaries (load/verify, compute, finalize). Deterministic input/model errors are terminal and non-retryable; unexpected infrastructure errors remain eligible for bounded queue retries.
+The handler reports progress at meaningful boundaries (load/verify, compute, persist/finalize). Deterministic input/model/result-integrity errors are terminal and non-retryable; unexpected infrastructure errors remain eligible for bounded queue retries.
 
-Detailed timetable, vehicle-block and metrics persistence is intentionally deferred to Phase B.4. B.3 stores only execution provenance, fingerprints and a compact diagnostic summary in `ComputationRun`.
+## Result persistence and crash recovery
+
+`core-planning` persists the complete operational result before marking the queue run as `succeeded`. The persistence boundary is idempotent by `computation_run_id`.
+
+If the database commit succeeds and the worker fails before `queue.succeed(...)`, a retry does not create a second plan. It reloads the existing immutable `PlanRevision`, verifies semantic layer, engine provenance and fingerprints, reconstructs the result, and continues only if the material result is identical.
 
 ## Reproducibility guardrails
 
 - semantic layer is derived from the immutable scenario snapshot, not trusted from a client payload;
 - queued input fingerprint must equal the snapshot fingerprint at worker execution time;
 - queued engine descriptor must equal the worker engine descriptor;
-- returned engine provenance and input fingerprint are checked before success;
-- output fingerprint is written to `ComputationRun` on successful planning;
+- returned engine provenance and input fingerprint are checked before persistence;
+- persisted result is reconstructed and must reproduce the exact output fingerprint;
+- output fingerprint is written to `ComputationRun` only on successful planning completion;
 - reuse of an idempotency key for materially different computation metadata is rejected.
 
 ## Why not Celery + Redis yet?
