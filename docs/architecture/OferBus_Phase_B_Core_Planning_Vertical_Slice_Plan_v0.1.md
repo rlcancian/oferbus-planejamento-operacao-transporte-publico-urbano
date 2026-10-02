@@ -76,28 +76,32 @@ Materialized:
 - deterministic domain/input failures marked non-retryable;
 - unexpected infrastructure failures remain eligible for bounded retry;
 - `output_fingerprint` persisted on successful `ComputationRun`;
-- compact technical diagnostics proving trips/fleet and provenance without pretending to be final result persistence;
 - strict idempotency compatibility checks for scenario, run kind, semantic layer, engine, fingerprints and payload;
 - integrated PostgreSQL/API/worker smoke executing the real planning fixture end to end.
 
 Detailed design: `architecture/OferBus_Phase_B3_Deterministic_Planning_Worker_v0.1.md`.
 
-## B.4 — plan and result persistence — PRÓXIMA
+## B.4 — plan and result persistence — CONCLUÍDA
 
-Persist the output lineage without mutable overwrite:
+Materialized:
 
-```text
-ScenarioRevision
-→ ComputationRun
-→ PlanRevision
-→ planned trips / links / vehicle blocks
-→ ResultSnapshot
-→ metrics
-```
+- migration `0005_planning_results`;
+- immutable `PlanRevision` lineage separated from derived `ResultSnapshot` metrics;
+- relational `PlannedTrip` rows preserving real/virtual service times, trip type, express semantics, vehicle block and service level;
+- `VehicleBlock` and ordered `VehicleBlockTrip` persistence designed for later March Diagram editing;
+- complete persistence of the current `PlanningMetricsResult` contract;
+- canonical result fingerprint calculation centralized in `oferbus-core`;
+- transactional `persist_planning_result(...)` with exact provenance/fingerprint checks;
+- `load_planning_result(...)` reconstructs a complete `PlanningResult` and recalculates the original output fingerprint;
+- idempotent materialization by `ComputationRun`, including recovery when persistence commits before `queue.succeed`;
+- API `GET /results/computations/{run_id}` guarded by `result:read`;
+- integrated PostgreSQL smoke proving computation → relational persistence → API read → exact fingerprint reconstruction.
 
-The first schema must preserve provenance and support later March Diagram editing without freezing the full future crew/optimization model.
+The schema deliberately separates `PlanRevision` from `ResultSnapshot`: future manual timetable edits create derived plan revisions rather than overwriting computed history. Core `float` metrics are persisted as PostgreSQL double precision so the current computational contract is not silently quantized.
 
-## B.5 — web planning result workspace — PENDENTE
+Detailed design: `architecture/OferBus_Phase_B4_Plan_Result_Persistence_v0.1.md`.
+
+## B.5 — web planning result workspace — PRÓXIMA
 
 Expose the first useful OferBus operational screen:
 
