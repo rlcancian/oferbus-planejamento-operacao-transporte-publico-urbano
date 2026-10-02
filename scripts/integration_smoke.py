@@ -59,8 +59,25 @@ def wait_for_api(api_url: str, timeout: float) -> None:
     raise RuntimeError(f"API did not become healthy: {last_error}")
 
 
+def wait_for_run(api_url: str, run_id: str, timeout: float) -> dict:
+    deadline = time.monotonic() + timeout
+    final: dict | None = None
+    while time.monotonic() < deadline:
+        _, payload = request_json("GET", f"{api_url}/computations/{run_id}", authenticated=True)
+        assert isinstance(payload, dict), payload
+        final = payload
+        if payload.get("status") in {"succeeded", "failed", "cancelled"}:
+            break
+        time.sleep(0.25)
+    if not isinstance(final, dict) or final.get("status") != "succeeded":
+        raise RuntimeError(f"Computation did not succeed: {final}")
+    if final.get("progress_percent") != 100:
+        raise RuntimeError(f"Computation progress did not reach 100: {final}")
+    return final
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run OferBus integrated platform and planning-input smoke")
+    parser = argparse.ArgumentParser(description="Run OferBus integrated platform and deterministic planning smoke")
     parser.add_argument("--api-url", default="http://127.0.0.1:8010")
     parser.add_argument("--timeout", type=float, default=30.0)
     args = parser.parse_args()
@@ -83,6 +100,7 @@ def main() -> None:
     assert isinstance(planning, dict), planning
     assert planning.get("scenario_revision_id") == str(PLANNING_SCENARIO_REVISION_ID), planning
     assert isinstance(planning.get("input_fingerprint"), str) and len(planning["input_fingerprint"]) == 64, planning
+    planning_input_fingerprint = planning["input_fingerprint"]
     planning_input = planning.get("planning_input")
     assert isinstance(planning_input, dict), planning
     assert planning_input.get("semantic_layer") == "normalized", planning_input
@@ -91,6 +109,7 @@ def main() -> None:
     assert directions[0].get("direction_key") == "outbound", directions
     assert len(directions[0].get("observations", [])) == 3, directions
 
+    # Retain the Phase A AI/platform smoke as a regression check.
     _, ai_status = request_json("GET", f"{api_url}/ai/status")
     assert isinstance(ai_status, dict) and ai_status.get("boundary") == "ready", ai_status
     assert ai_status.get("direct_sql_allowed") is False, ai_status
@@ -109,8 +128,8 @@ def main() -> None:
             "confirmed": True,
             "arguments": {
                 "scenario_revision_id": str(SCENARIO_REVISION_ID),
-                "idempotency_key": "phase-b-integration-smoke-v1",
-                "message": "Phase B planning-input smoke passed",
+                "idempotency_key": "phase-b3-platform-smoke-v1",
+                "message": "Phase B3 platform regression smoke passed",
                 "delay_seconds": 0.1,
             },
         },
@@ -118,21 +137,43 @@ def main() -> None:
     assert isinstance(execution, dict), execution
     output = execution.get("output")
     assert isinstance(output, dict) and isinstance(output.get("run_id"), str), execution
-    run_id = output["run_id"]
+    platform_final = wait_for_run(api_url, output["run_id"], args.timeout)
 
-    deadline = time.monotonic() + args.timeout
-    final = None
-    while time.monotonic() < deadline:
-        _, final = request_json("GET", f"{api_url}/computations/{run_id}", authenticated=True)
-        assert isinstance(final, dict), final
-        if final.get("status") in {"succeeded", "failed", "cancelled"}:
-            break
-        time.sleep(0.25)
+    # Submit the first real deterministic planning computation. No scientific
+    # payload is accepted here: all input is loaded from the immutable revision.
+    _, planning_run = request_json(
+        "POST",
+        f"{api_url}/computations",
+        authenticated=True,
+        body={
+            "scenario_revision_id": str(PLANNING_SCENARIO_REVISION_ID),
+            "run_kind": "core-planning",
+            "idempotency_key": "phase-b3-core-planning-v1",
+            "max_attempts": 2,
+        },
+    )
+    assert isinstance(planning_run, dict), planning_run
+    assert planning_run.get("run_kind") == "core-planning", planning_run
+    assert planning_run.get("semantic_layer") == "normalized", planning_run
+    assert planning_run.get("input_fingerprint") == planning_input_fingerprint, planning_run
+    assert planning_run.get("output_fingerprint") is None, planning_run
+    planning_run_id = planning_run.get("run_id")
+    assert isinstance(planning_run_id, str), planning_run
 
-    if not isinstance(final, dict) or final.get("status") != "succeeded":
-        raise RuntimeError(f"Computation did not succeed: {final}")
-    if final.get("progress_percent") != 100:
-        raise RuntimeError(f"Computation progress did not reach 100: {final}")
+    planning_final = wait_for_run(api_url, planning_run_id, args.timeout)
+    assert planning_final.get("semantic_layer") == "normalized", planning_final
+    assert planning_final.get("input_fingerprint") == planning_input_fingerprint, planning_final
+    output_fingerprint = planning_final.get("output_fingerprint")
+    assert isinstance(output_fingerprint, str) and len(output_fingerprint) == 64, planning_final
+    diagnostics = planning_final.get("diagnostics")
+    assert isinstance(diagnostics, dict), planning_final
+    assert diagnostics.get("handler") == "core-planning", diagnostics
+    assert diagnostics.get("semantic_layer") == "normalized", diagnostics
+    assert diagnostics.get("input_fingerprint") == planning_input_fingerprint, diagnostics
+    assert diagnostics.get("output_fingerprint") == output_fingerprint, diagnostics
+    assert isinstance(diagnostics.get("trip_count"), int) and diagnostics["trip_count"] > 0, diagnostics
+    assert isinstance(diagnostics.get("effective_fleet"), int) and diagnostics["effective_fleet"] >= 1, diagnostics
+    assert diagnostics.get("result_persistence") == "deferred-to-phase-b4", diagnostics
 
     print(
         json.dumps(
@@ -141,9 +182,12 @@ def main() -> None:
                 "migration": ready.get("migration"),
                 "organization_id": str(ORGANIZATION_ID),
                 "planning_scenario_revision_id": str(PLANNING_SCENARIO_REVISION_ID),
-                "planning_input_fingerprint": planning.get("input_fingerprint"),
-                "run_id": run_id,
-                "computation_status": final.get("status"),
+                "planning_input_fingerprint": planning_input_fingerprint,
+                "planning_output_fingerprint": output_fingerprint,
+                "planning_run_id": planning_run_id,
+                "planning_trip_count": diagnostics.get("trip_count"),
+                "planning_effective_fleet": diagnostics.get("effective_fleet"),
+                "platform_run_id": platform_final.get("run_id"),
                 "ai_boundary": ai_status.get("boundary"),
             },
             sort_keys=True,
