@@ -7,6 +7,7 @@ from oferbus_db import check_database
 from .ai import router as ai_router
 from .computations import router as computations_router
 from .identity import router as identity_router
+from .planning import router as planning_router
 
 
 class HealthStatus(BaseModel):
@@ -25,17 +26,18 @@ class DatabaseStatus(BaseModel):
 
 app = FastAPI(
     title="OferBus API",
-    version="0.5.0",
+    version="0.6.0",
     description="Application boundary for the OferBus 2026 planning platform.",
 )
 app.include_router(identity_router)
 app.include_router(computations_router)
 app.include_router(ai_router)
+app.include_router(planning_router)
 
 
 @app.get("/health", response_model=HealthStatus, tags=["platform"])
 def health() -> HealthStatus:
-    return HealthStatus(service="oferbus-api", status="ok", version="0.5.0")
+    return HealthStatus(service="oferbus-api", status="ok", version="0.6.0")
 
 
 @app.get("/ready", response_model=DatabaseStatus, tags=["platform"])
