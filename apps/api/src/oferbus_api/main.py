@@ -4,6 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from oferbus_db import check_database
 
+from .computations import router as computations_router
 from .identity import router as identity_router
 
 
@@ -23,15 +24,16 @@ class DatabaseStatus(BaseModel):
 
 app = FastAPI(
     title="OferBus API",
-    version="0.3.0",
+    version="0.4.0",
     description="Application boundary for the OferBus 2026 planning platform.",
 )
 app.include_router(identity_router)
+app.include_router(computations_router)
 
 
 @app.get("/health", response_model=HealthStatus, tags=["platform"])
 def health() -> HealthStatus:
-    return HealthStatus(service="oferbus-api", status="ok", version="0.3.0")
+    return HealthStatus(service="oferbus-api", status="ok", version="0.4.0")
 
 
 @app.get("/ready", response_model=DatabaseStatus, tags=["platform"])
