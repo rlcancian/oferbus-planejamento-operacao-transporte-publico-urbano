@@ -25,6 +25,7 @@ jobs:
             -e './reference-core' \
             -e './packages/oferbus-core[dev]' \
             -e './packages/oferbus-db[dev]' \
+            -e './packages/oferbus-planning[dev]' \
             -e './packages/oferbus-jobs[dev]' \
             -e './packages/oferbus-ai[dev]' \
             -e './apps/api[dev]' \
@@ -37,7 +38,7 @@ jobs:
       - name: Python lint
         run: ruff check --select E9,F63,F7,F82 apps packages reference-core scripts
       - name: Python tests
-        run: pytest -q packages/oferbus-core/tests packages/oferbus-db/tests packages/oferbus-jobs/tests packages/oferbus-ai/tests apps/api/tests apps/worker/tests reference-core/tests
+        run: pytest -q packages/oferbus-core/tests packages/oferbus-db/tests packages/oferbus-planning/tests packages/oferbus-jobs/tests packages/oferbus-ai/tests apps/api/tests apps/worker/tests reference-core/tests
       - name: Python dependency audit
         run: pip-audit
 
@@ -94,7 +95,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install \
+            -e ./reference-core \
+            -e ./packages/oferbus-core \
             -e ./packages/oferbus-db \
+            -e ./packages/oferbus-planning \
             -e ./packages/oferbus-jobs \
             -e ./packages/oferbus-ai \
             -e ./apps/api \
