@@ -12,8 +12,8 @@ A **Phase B — Core Planning Vertical Slice** está em andamento:
 
 - **B.1 — Production Planning Contracts and Reference Bridge:** concluída;
 - **B.2 — Planning Input Persistence and Application Boundary:** concluída;
-- **B.3 — Deterministic Planning Worker:** próxima;
-- **B.4 — Plan and Result Persistence:** pendente;
+- **B.3 — Deterministic Planning Worker:** concluída;
+- **B.4 — Plan and Result Persistence:** próxima;
 - **B.5 — Web Planning Result Workspace:** pendente;
 - **B.6 — Integrated Acceptance and Regression Gate:** pendente.
 
@@ -46,19 +46,23 @@ minimum timetable
 → operating and cost metrics
 ```
 
-A B.2 introduziu `packages/oferbus-planning`, a fronteira compartilhada de aplicação entre API e futuro worker. A migration `0004_planning_inputs` persiste datasets observados com revisões imutáveis, observações por sentido e snapshots completos de `ScenarioRevision` com curvas, parâmetros, veículo, custos, semantic layer e fingerprint.
+A B.2 introduziu `packages/oferbus-planning`, a fronteira compartilhada de aplicação entre API e worker. A migration `0004_planning_inputs` persiste datasets observados com revisões imutáveis, observações por sentido e snapshots completos de `ScenarioRevision` com curvas, parâmetros, veículo, custos, semantic layer e fingerprint.
 
 A leitura de um snapshot recalcula o SHA-256 canônico do `PlanningInput`; divergências entre o estado persistido e o fingerprint da revisão são rejeitadas.
+
+A B.3 conectou essa revisão imutável à execução assíncrona real. `run_kind=core-planning` deriva semantic layer, fingerprint e engine da revisão persistida, verifica novamente essas invariantes no worker e executa o `oferbus-core`. `ComputationRun` passa a registrar `input_fingerprint` e `output_fingerprint`, além de um resumo diagnóstico de provenance. Resultados operacionais detalhados permanecem para a B.4.
+
+A idempotência também foi endurecida: uma mesma chave não pode apontar silenciosamente para cenário, engine, fingerprint ou payload diferente.
 
 `legacy-exact` e `normalized` são distinguidos explicitamente. `modern` permanece indisponível até existir um modelo moderno real; a plataforma não simula capacidades ainda não implementadas.
 
 ## Fundação multiusuário e Copilot
 
-A baseline física inclui organizações/usuários, memberships, municípios/operadores/terminais, linhas/sentidos, projetos, cenários/revisões, `ComputationRun`, auditoria, metadados de execução assíncrona e agora inputs de planejamento versionados. As relações tenant-owned críticas usam foreign keys compostas com `organization_id` para impedir referências cruzadas entre organizações no próprio banco.
+A baseline física inclui organizações/usuários, memberships, municípios/operadores/terminais, linhas/sentidos, projetos, cenários/revisões, `ComputationRun`, auditoria, metadados de execução assíncrona e inputs de planejamento versionados. As relações tenant-owned críticas usam foreign keys compostas com `organization_id` para impedir referências cruzadas entre organizações no próprio banco.
 
 A autenticação possui fronteira substituível; o desenvolvimento usa um adaptador local explicitamente proibido em produção. A aplicação resolve uma organização ativa e aplica RBAC (`owner`, `admin`, `planner`, `viewer`).
 
-A fronteira de IA existe em `packages/oferbus-ai`. Nenhum LLM tem acesso direto a SQL. O provider ainda está deliberadamente `unconfigured`; ferramentas disponíveis são allow-listed, herdam as permissões do usuário e ações de cálculo/mutação exigem confirmação na baseline atual.
+A fronteira de IA existe em `packages/oferbus-ai`. Nenhum LLM tem acesso direto a SQL. O provider ainda está deliberadamente `unconfigured`; ferramentas disponíveis são allow-listed, herdam as permissões do usuário e ações de cálculo/mutação exigem confirmação na baseline atual. O cálculo `core-planning` já existe de forma determinística, mas ainda não foi exposto como ferramenta do Copilot nesta fase.
 
 ## Execução local
 
@@ -81,11 +85,13 @@ Em outro terminal, com os serviços ativos:
 make smoke
 ```
 
+O smoke integrado agora inclui também uma execução `core-planning` real sobre a fixture determinística da Phase B.
+
 ## Estrutura
 
 - `apps/web/` — aplicação Next.js;
 - `apps/api/` — API FastAPI;
-- `apps/worker/` — worker Python para computações longas;
+- `apps/worker/` — worker Python para computações longas e planejamento determinístico;
 - `packages/oferbus-ai/` — contratos de provider LLM e ferramentas estruturadas do Copilot;
 - `packages/oferbus-core/` — contratos e motor computacional de produção;
 - `packages/oferbus-db/` — persistência SQLAlchemy/PostgreSQL;
