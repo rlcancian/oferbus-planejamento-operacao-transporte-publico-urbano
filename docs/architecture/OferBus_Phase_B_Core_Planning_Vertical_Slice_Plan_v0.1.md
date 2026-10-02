@@ -101,22 +101,29 @@ The schema deliberately separates `PlanRevision` from `ResultSnapshot`: future m
 
 Detailed design: `architecture/OferBus_Phase_B4_Plan_Result_Persistence_v0.1.md`.
 
-## B.5 — web planning result workspace — PRÓXIMA
+## B.5 — web planning result workspace — CONCLUÍDA
 
-Expose the first useful OferBus operational screen:
+Materialized:
 
-- project/scenario context;
-- computation state and provenance;
-- timetable table;
-- vehicle/block summary;
-- effective fleet;
-- occupancy and core operating/cost metrics;
-- semantic-layer badge and engine version;
-- read-only preparation for the Phase C March Diagram.
+- API `GET /results/latest`, tenant-scoped and protected by `result:read`;
+- result context with project, scenario, scenario revision and exact lines represented by the planning snapshot;
+- server-side Next.js API client with development-only seed identity fallback and production-safe behavior;
+- root OferBus screen converted from the Phase A landing into the first operational planning workspace;
+- compact project/scenario/line heading with semantic layer and integrity state;
+- high-value operational ribbon for fleet, trips, passengers, distance, occupancy and daily cost;
+- timetable with real/virtual service times, direction, trip semantics, vehicle block and service level;
+- vehicle-block view with ordered trip sequence and operating window;
+- detailed operation, demand and cost indicators;
+- provenance surface with engine, semantic layer, fingerprints and technical notes;
+- explicit empty/unavailable states instead of invented demo data;
+- responsive workstation/control-room visual language with reduced-motion support;
+- CI coverage for strict TypeScript, Next build and authenticated `/results/latest` context against PostgreSQL.
 
-No decorative dashboard should substitute for the operational result.
+The block view is deliberately a precise read-only preparation for the Phase C March Diagram; B.5 does not fake the future interactive editor.
 
-## B.6 — integrated acceptance and regression gate — PENDENTE
+Detailed design: `architecture/OferBus_Phase_B5_Web_Planning_Result_Workspace_v0.1.md`.
+
+## B.6 — integrated acceptance and regression gate — PRÓXIMA
 
 Add a reproducible fixture and CI/browser path proving:
 
