@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    Float,
     ForeignKeyConstraint,
     Integer,
-    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -166,21 +165,21 @@ class ResultSnapshot(Base):
     output_fingerprint: Mapped[str] = mapped_column(String(128), nullable=False)
     total_passengers: Mapped[int] = mapped_column(Integer, nullable=False)
     total_trips: Mapped[int] = mapped_column(Integer, nullable=False)
-    mean_extension_km: Mapped[Decimal] = mapped_column(Numeric(14, 6), nullable=False)
-    total_distance_km: Mapped[Decimal] = mapped_column(Numeric(14, 6), nullable=False)
+    mean_extension_km: Mapped[float] = mapped_column(Float, nullable=False)
+    total_distance_km: Mapped[float] = mapped_column(Float, nullable=False)
     effective_fleet: Mapped[int] = mapped_column(Integer, nullable=False)
-    mean_daily_distance_per_vehicle_km: Mapped[Decimal] = mapped_column(Numeric(14, 6), nullable=False)
-    mean_passengers_per_trip: Mapped[Decimal] = mapped_column(Numeric(14, 6), nullable=False)
-    mean_critical_passengers_per_trip: Mapped[Decimal] = mapped_column(Numeric(14, 6), nullable=False)
-    mean_occupancy_rate: Mapped[Decimal | None] = mapped_column(Numeric(14, 8))
-    passengers_per_km: Mapped[Decimal] = mapped_column(Numeric(14, 8), nullable=False)
-    daily_total_cost: Mapped[Decimal] = mapped_column(Numeric(16, 6), nullable=False)
-    mean_cost_per_vehicle: Mapped[Decimal] = mapped_column(Numeric(16, 6), nullable=False)
-    cost_per_trip: Mapped[Decimal] = mapped_column(Numeric(16, 6), nullable=False)
-    cost_per_equivalent_passenger: Mapped[Decimal] = mapped_column(Numeric(16, 8), nullable=False)
-    mean_trips_per_vehicle: Mapped[Decimal] = mapped_column(Numeric(14, 6), nullable=False)
-    mean_travel_time_min: Mapped[Decimal] = mapped_column(Numeric(14, 6), nullable=False)
-    mean_speed_kmh: Mapped[Decimal] = mapped_column(Numeric(14, 6), nullable=False)
+    mean_daily_distance_per_vehicle_km: Mapped[float] = mapped_column(Float, nullable=False)
+    mean_passengers_per_trip: Mapped[float] = mapped_column(Float, nullable=False)
+    mean_critical_passengers_per_trip: Mapped[float] = mapped_column(Float, nullable=False)
+    mean_occupancy_rate: Mapped[float | None] = mapped_column(Float)
+    passengers_per_km: Mapped[float] = mapped_column(Float, nullable=False)
+    daily_total_cost: Mapped[float] = mapped_column(Float, nullable=False)
+    mean_cost_per_vehicle: Mapped[float] = mapped_column(Float, nullable=False)
+    cost_per_trip: Mapped[float] = mapped_column(Float, nullable=False)
+    cost_per_equivalent_passenger: Mapped[float] = mapped_column(Float, nullable=False)
+    mean_trips_per_vehicle: Mapped[float] = mapped_column(Float, nullable=False)
+    mean_travel_time_min: Mapped[float] = mapped_column(Float, nullable=False)
+    mean_speed_kmh: Mapped[float] = mapped_column(Float, nullable=False)
     distance_semantics: Mapped[str] = mapped_column(Text, nullable=False)
     provenance_notes: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
