@@ -10,14 +10,15 @@ Para entender o estado atual, leia nesta ordem:
 2. `architecture/OferBus_Rematerialization_Architecture_v0.1.md` — arquitetura alvo do OferBus 2026;
 3. `architecture/OferBus_Phase_A_Platform_Skeleton_Plan_v0.1.md` — plano e estado da Phase A;
 4. `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md` — baseline PostgreSQL física;
-5. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
+5. `architecture/OferBus_Identity_and_Tenancy_v0.1.md` — autenticação substituível, tenancy explícita e autorização;
+6. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
 
 ## Estado da materialização
 
 - **Phase A.1 — Platform Skeleton:** concluída;
 - **Phase A.2 — Persistence Baseline:** concluída;
-- **Phase A.3 — Identity and Tenancy Boundary:** próxima;
-- **Phase A.4 — Asynchronous Computation Boundary:** pendente;
+- **Phase A.3 — Identity and Tenancy Boundary:** concluída;
+- **Phase A.4 — Asynchronous Computation Boundary:** próxima;
 - **Phase A.5 — AI and Tool Boundary:** pendente;
 - **Phase A.6 — Quality Gate and Local Startup:** pendente.
 
@@ -56,13 +57,14 @@ Para entender o estado atual, leia nesta ordem:
 - `architecture/OferBus_Rematerialization_Architecture_v0.1.md`
 - `architecture/OferBus_Phase_A_Platform_Skeleton_Plan_v0.1.md`
 - `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md`
+- `architecture/OferBus_Identity_and_Tenancy_v0.1.md`
 
 ## Persistência moderna
 
 - `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md`
 - `persistence/OferBus_PostgreSQL_Logical_DDL_v0.1.sql`
 - `../packages/oferbus-db/` — modelos SQLAlchemy da baseline física;
-- `../migrations/` — migrations Alembic; a revisão inicial é `0001_foundation`.
+- `../migrations/` — migrations Alembic; a baseline atual termina em `0002_identity_tenancy`.
 
 PostgreSQL é a fonte de verdade. Arquivos nativos históricos são apenas fontes arqueológicas e, quando útil, entradas para migração única.
 
@@ -70,6 +72,7 @@ PostgreSQL é a fonte de verdade. Arquivos nativos históricos são apenas fonte
 
 - `decisions/ADR-0001-modern-persistence-and-legacy-files.md`
 - `decisions/ADR-0002-application-architecture-and-stack.md`
+- `decisions/ADR-0003-identity-tenancy-and-authorization.md`
 
 ## Reference core
 
