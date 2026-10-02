@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -50,4 +50,11 @@ class ComputationJob(Base):
         CheckConstraint("attempt_count >= 0", name="ck_computation_job_attempt_count"),
         CheckConstraint("max_attempts >= 1", name="ck_computation_job_max_attempts"),
         Index("ix_computation_job_claim", "available_at", "queued_at"),
+        Index(
+            "uq_computation_job_org_idempotency",
+            "organization_id",
+            "idempotency_key",
+            unique=True,
+            postgresql_where=text("idempotency_key IS NOT NULL"),
+        ),
     )
