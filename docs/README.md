@@ -14,12 +14,13 @@ Para entender o estado atual, leia nesta ordem:
 6. `architecture/OferBus_Phase_B3_Deterministic_Planning_Worker_v0.1.md` — execução assíncrona determinística, fingerprints e provenance;
 7. `architecture/OferBus_Phase_B4_Plan_Result_Persistence_v0.1.md` — linhagem imutável de planos, viagens, blocos e resultados;
 8. `architecture/OferBus_Phase_B5_Web_Planning_Result_Workspace_v0.1.md` — primeiro workspace operacional web sobre resultados reais;
-9. `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md` — baseline PostgreSQL física;
-10. `architecture/OferBus_Identity_and_Tenancy_v0.1.md` — autenticação substituível, tenancy explícita e autorização;
-11. `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md` — fila, worker, retries, idempotência e progresso;
-12. `decisions/ADR-0005-ai-provider-and-tool-boundary.md` — fronteira provider-neutral do Copilot e ferramentas estruturadas;
-13. `architecture/OferBus_Phase_A6_Quality_Gate_and_Local_Startup_v0.1.md` — bootstrap, quality gates e primeira execução no navegador;
-14. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
+9. `architecture/OferBus_Phase_B6_Integrated_Acceptance_and_Regression_v0.1.md` — golden master e aceitação ponta a ponta até o workspace renderizado;
+10. `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md` — baseline PostgreSQL física;
+11. `architecture/OferBus_Identity_and_Tenancy_v0.1.md` — autenticação substituível, tenancy explícita e autorização;
+12. `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md` — fila, worker, retries, idempotência e progresso;
+13. `decisions/ADR-0005-ai-provider-and-tool-boundary.md` — fronteira provider-neutral do Copilot e ferramentas estruturadas;
+14. `architecture/OferBus_Phase_A6_Quality_Gate_and_Local_Startup_v0.1.md` — bootstrap, quality gates e primeira execução no navegador;
+15. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
 
 ## Estado da materialização
 
@@ -29,7 +30,9 @@ Para entender o estado atual, leia nesta ordem:
 - **Phase B.3 — Deterministic Planning Worker:** concluída;
 - **Phase B.4 — Plan and Result Persistence:** concluída;
 - **Phase B.5 — Web Planning Result Workspace:** concluída;
-- **Phase B.6 — Integrated Acceptance and Regression Gate:** próxima.
+- **Phase B.6 — Integrated Acceptance and Regression Gate:** concluída;
+- **Phase B — Core Planning Vertical Slice:** concluída e validada ponta a ponta;
+- **Próximo horizonte:** Phase C — March Diagram and Versioned Operational Editing.
 
 ## Arqueologia
 
@@ -70,6 +73,7 @@ Para entender o estado atual, leia nesta ordem:
 - `architecture/OferBus_Phase_B3_Deterministic_Planning_Worker_v0.1.md`
 - `architecture/OferBus_Phase_B4_Plan_Result_Persistence_v0.1.md`
 - `architecture/OferBus_Phase_B5_Web_Planning_Result_Workspace_v0.1.md`
+- `architecture/OferBus_Phase_B6_Integrated_Acceptance_and_Regression_v0.1.md`
 - `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md`
 - `architecture/OferBus_Identity_and_Tenancy_v0.1.md`
 - `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md`
@@ -79,7 +83,7 @@ Para entender o estado atual, leia nesta ordem:
 
 - `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md`
 - `persistence/OferBus_PostgreSQL_Logical_DDL_v0.1.sql`
-- `../packages/oferbus-core/` — contratos, validação, fingerprints canônicos e ponte de referência;
+- `../packages/oferbus-core/` — contratos, validação, fingerprints canônicos, golden master e ponte de referência;
 - `../packages/oferbus-db/` — modelos SQLAlchemy para inputs, execução e resultados operacionais;
 - `../packages/oferbus-planning/` — fronteira de aplicação para datasets, revisões de cenário e persistência/reconstrução de resultados;
 - `../packages/oferbus-jobs/` — fila PostgreSQL, leases/retries, fingerprints de execução e idempotência estrita;
@@ -88,8 +92,9 @@ Para entender o estado atual, leia nesta ordem:
 - `../apps/web/` — workspace operacional Next.js com timetable, blocos, indicadores e provenance;
 - `../packages/oferbus-ai/` — contrato provider-neutral e ferramentas estruturadas do Copilot;
 - `../migrations/` — migrations Alembic; a baseline atual termina em `0005_planning_results`;
-- `../scripts/` — bootstrap, seed, diagnóstico e smoke integrado, incluindo persistência, reconstrução e contexto do workspace;
-- `../.github/workflows/ci.yml` — quality gates automatizados.
+- `../scripts/integration_smoke.py` — smoke repetível de cálculo/persistência/API;
+- `../scripts/web_acceptance.py` — aceitação semântica do workspace Next.js renderizado;
+- `../.github/workflows/ci.yml` — quality gates automatizados, incluindo Next.js de produção sobre o resultado real.
 
 PostgreSQL é a fonte de verdade. Arquivos nativos históricos são apenas fontes arqueológicas e, quando útil, entradas para migração única.
 
@@ -103,4 +108,4 @@ PostgreSQL é a fonte de verdade. Arquivos nativos históricos são apenas fonte
 
 ## Reference core
 
-`../reference-core/` contém a implementação de referência usada para converter a semântica recuperada do Visual Basic em contratos computacionais executáveis e testes de caracterização. Ele permanece separado do `oferbus-core` de produção; na B.1 ele é acessado apenas por uma ponte explicitamente temporária e rastreável.
+`../reference-core/` contém a implementação de referência usada para converter a semântica recuperada do Visual Basic em contratos computacionais executáveis e testes de caracterização. Ele permanece separado do `oferbus-core` de produção; na Phase B é acessado apenas por uma ponte explicitamente temporária e rastreável.
