@@ -46,12 +46,13 @@ export default async function Home() {
   return (
     <main className="shell">
       <section className="hero">
-        <div className="eyebrow">OferBus 2026 · plataforma em rematerialização</div>
+        <div className="eyebrow">OferBus 2026 · Phase A platform foundation</div>
         <h1>Planejamento operacional urbano, reconstruído para a web.</h1>
         <p>
           A fundação multiusuário já separa experiência web, API Python, identidade por organização,
           execução assíncrona, núcleo computacional determinístico, persistência PostgreSQL e uma
-          fronteira nativa e auditável para o OferBus Copilot. O próximo marco é o quality gate local.
+          fronteira nativa e auditável para o OferBus Copilot. Esta instalação está pronta para o
+          quality gate local antes do primeiro vertical slice de planejamento.
         </p>
 
         <div className="status-grid" aria-label="Estado da plataforma">
@@ -63,7 +64,7 @@ export default async function Home() {
           <article className={copilot ? "status-online" : "status-pending"}>
             <strong>Copilot</strong>
             <span>{copilot ? `boundary pronta · ${copilot.provider}` : "aguardando API"}</span>
-            <small>{copilot ? (copilot.configured ? `provider configurado${copilot.model ? ` · ${copilot.model}` : ""}` : "provider LLM ainda não selecionado · SQL direto bloqueado") : "Fronteira provider-neutral da Phase A.5"}</small>
+            <small>{copilot ? (copilot.configured ? `provider configurado${copilot.model ? ` · ${copilot.model}` : ""}` : "provider LLM ainda não selecionado · SQL direto bloqueado") : "Fronteira provider-neutral"}</small>
           </article>
           <article className={readiness ? "status-online" : "status-pending"}>
             <strong>PostgreSQL</strong>
