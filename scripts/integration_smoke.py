@@ -8,7 +8,9 @@ import urllib.request
 
 from dev_seed import (
     ORGANIZATION_ID,
+    PLANNING_SCENARIO_ID,
     PLANNING_SCENARIO_REVISION_ID,
+    PROJECT_ID,
     SCENARIO_REVISION_ID,
     SUBJECT,
 )
@@ -191,7 +193,9 @@ def main() -> None:
 
     context = persisted.get("context")
     assert isinstance(context, dict), persisted
-    assert context.get("project_name") == "OferBus Development Project", context
+    assert context.get("project_id") == str(PROJECT_ID), context
+    assert context.get("scenario_id") == str(PLANNING_SCENARIO_ID), context
+    assert isinstance(context.get("project_name"), str) and context["project_name"], context
     assert context.get("scenario_name") == "Phase B Core Planning Fixture", context
     assert context.get("scenario_revision_id") == str(PLANNING_SCENARIO_REVISION_ID), context
     lines = context.get("lines")
