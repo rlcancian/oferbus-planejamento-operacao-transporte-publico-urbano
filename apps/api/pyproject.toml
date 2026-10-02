@@ -1,6 +1,6 @@
 [project]
 name = "oferbus-api"
-version = "0.6.0"
+version = "0.7.0"
 description = "OferBus 2026 application API"
 requires-python = ">=3.12,<3.15"
 dependencies = [
