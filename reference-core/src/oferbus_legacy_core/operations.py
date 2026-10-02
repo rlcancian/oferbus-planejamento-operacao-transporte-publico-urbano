@@ -1,7 +1,16 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from enum import IntEnum
+from enum import IntEnum, IntFlag
 from typing import Sequence
+
+
+class TripTypeFlag(IntFlag):
+    EXPRESS = 1
+    CREATED = 2
+    DEPARTURE_CHANGED = 4
+    USER_OR_IMPORTED = 8
+    MANUAL_ENTRY_LINK = 16
+    MANUAL_EXIT_LINK = 32
 
 
 class LinkKind(IntEnum):
@@ -36,15 +45,31 @@ class OperationalTrip:
 
     @property
     def is_express(self) -> bool:
-        return (self.trip_type % 2) == 1
+        return (self.trip_type & TripTypeFlag.EXPRESS) != 0
+
+    @property
+    def was_created(self) -> bool:
+        return (self.trip_type & TripTypeFlag.CREATED) != 0
+
+    @property
+    def departure_was_changed(self) -> bool:
+        return (self.trip_type & TripTypeFlag.DEPARTURE_CHANGED) != 0
+
+    @property
+    def was_created_by_user(self) -> bool:
+        return self.was_created and (self.trip_type & TripTypeFlag.USER_OR_IMPORTED) != 0
+
+    @property
+    def was_imported(self) -> bool:
+        return (not self.was_created) and (self.trip_type & TripTypeFlag.USER_OR_IMPORTED) != 0
 
     @property
     def manual_entry_link(self) -> bool:
-        return (self.trip_type & 16) != 0
+        return (self.trip_type & TripTypeFlag.MANUAL_ENTRY_LINK) != 0
 
     @property
     def manual_exit_link(self) -> bool:
-        return (self.trip_type & 32) != 0
+        return (self.trip_type & TripTypeFlag.MANUAL_EXIT_LINK) != 0
 
     @property
     def legacy_links(self) -> int:
