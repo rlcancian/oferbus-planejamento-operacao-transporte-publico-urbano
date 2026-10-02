@@ -79,11 +79,45 @@ export type PersistedPlanningResult = {
   provenance_notes: string[];
 };
 
+export type MarchTerminal = {
+  id: string | null;
+  name: string;
+};
+
+export type MarchDirection = {
+  direction_key: string;
+  legacy_direction_number: number | null;
+  line_id: string;
+  line_public_code: string | null;
+  line_name: string;
+  origin: MarchTerminal;
+  destination: MarchTerminal;
+  extension_km: number | null;
+};
+
+export type MarchTrip = PlannedTrip;
+
+export type MarchPlan = {
+  plan_revision_id: string;
+  parent_plan_revision_id: string | null;
+  scenario_revision_id: string;
+  revision_no: number;
+  source_kind: string;
+  semantic_layer: string;
+  output_fingerprint: string;
+  service_start_minute: number;
+  service_end_minute: number;
+  directions: MarchDirection[];
+  trips: MarchTrip[];
+};
+
 export type LatestResultLoad = {
   readiness: Readiness | null;
   result: PersistedPlanningResult | null;
+  march: MarchPlan | null;
   resultStatus: "available" | "empty" | "unavailable";
   resultError: string | null;
+  marchError: string | null;
 };
 
 const DEVELOPMENT_ORGANIZATION_ID = "d0568fff-011a-55a6-9083-321a787ad79d";
@@ -155,7 +189,29 @@ async function loadLatestResult(): Promise<Pick<LatestResultLoad, "result" | "re
   }
 }
 
+async function loadMarchPlan(planRevisionId: string): Promise<{ march: MarchPlan | null; marchError: string | null }> {
+  try {
+    const response = await fetch(`${apiBase()}/plans/${planRevisionId}/march`, {
+      cache: "no-store",
+      headers: resultHeaders(),
+    });
+    if (!response.ok) {
+      return { march: null, marchError: await responseError(response) };
+    }
+    return { march: (await response.json()) as MarchPlan, marchError: null };
+  } catch (error) {
+    return {
+      march: null,
+      marchError: error instanceof Error ? error.message : "Falha de conexão com a API do Gráfico de Marcha",
+    };
+  }
+}
+
 export async function loadPlanningWorkspace(): Promise<LatestResultLoad> {
   const [readiness, latest] = await Promise.all([loadReadiness(), loadLatestResult()]);
-  return { readiness, ...latest };
+  if (!latest.result) {
+    return { readiness, ...latest, march: null, marchError: null };
+  }
+  const march = await loadMarchPlan(latest.result.plan_revision_id);
+  return { readiness, ...latest, ...march };
 }
