@@ -15,6 +15,10 @@ TERMINAL_STATUSES = frozenset({"succeeded", "failed", "cancelled"})
 CLAIMABLE_STATUSES = frozenset({"queued", "retry_wait"})
 
 
+class IdempotencyConflictError(ValueError):
+    """An idempotency key was reused for a materially different computation."""
+
+
 @dataclass(frozen=True)
 class RunSubmission:
     organization_id: uuid.UUID
@@ -99,6 +103,29 @@ def _snapshot(run: ComputationRun, job: ComputationJob) -> RunSnapshot:
     )
 
 
+def _assert_idempotent_compatible(run: ComputationRun, job: ComputationJob, submission: RunSubmission) -> None:
+    existing_payload = job.payload or {}
+    requested_payload = submission.payload or {}
+    mismatches: list[str] = []
+    comparisons = {
+        "scenario_revision_id": (run.scenario_revision_id, submission.scenario_revision_id),
+        "run_kind": (run.run_kind, submission.run_kind),
+        "semantic_layer": (run.semantic_layer, submission.semantic_layer),
+        "engine_version": (run.engine_version, submission.engine_version),
+        "engine_source_revision": (run.engine_source_revision, submission.engine_source_revision),
+        "deterministic_seed": (run.deterministic_seed, submission.deterministic_seed),
+        "input_fingerprint": (run.input_fingerprint, submission.input_fingerprint),
+        "payload": (existing_payload, requested_payload),
+    }
+    for name, (existing, requested) in comparisons.items():
+        if existing != requested:
+            mismatches.append(name)
+    if mismatches:
+        raise IdempotencyConflictError(
+            "idempotency key is already bound to a different computation: " + ", ".join(mismatches)
+        )
+
+
 class PostgresComputationQueue:
     def __init__(self, session_factory: sessionmaker[Session] | None = None) -> None:
         self._session_factory = session_factory or get_session_factory()
@@ -119,6 +146,7 @@ class PostgresComputationQueue:
                     )
                 ).one_or_none()
                 if existing is not None:
+                    _assert_idempotent_compatible(*existing, submission)
                     return _snapshot(*existing)
 
             run = ComputationRun(
@@ -164,6 +192,7 @@ class PostgresComputationQueue:
                 ).one_or_none()
                 if existing is None:
                     raise
+                _assert_idempotent_compatible(*existing, submission)
                 return _snapshot(*existing)
 
             return _snapshot(run, job)
