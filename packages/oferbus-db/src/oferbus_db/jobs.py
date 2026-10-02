@@ -46,9 +46,9 @@ class ComputationJob(Base):
             name="fk_computation_job_tenant_run",
             ondelete="CASCADE",
         ),
-        CheckConstraint("progress_percent BETWEEN 0 AND 100", name="ck_computation_job_progress"),
-        CheckConstraint("attempt_count >= 0", name="ck_computation_job_attempt_count"),
-        CheckConstraint("max_attempts >= 1", name="ck_computation_job_max_attempts"),
+        CheckConstraint("progress_percent BETWEEN 0 AND 100", name="progress"),
+        CheckConstraint("attempt_count >= 0", name="attempt_count"),
+        CheckConstraint("max_attempts >= 1", name="max_attempts"),
         Index("ix_computation_job_claim", "available_at", "queued_at"),
         Index(
             "uq_computation_job_org_idempotency",
