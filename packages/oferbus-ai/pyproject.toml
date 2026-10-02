@@ -2,7 +2,7 @@
 name = "oferbus-ai"
 version = "0.1.0"
 description = "Provider-neutral AI and structured tool boundary for OferBus 2026"
-requires-python = ">=3.13,<3.15"
+requires-python = ">=3.12,<3.15"
 dependencies = []
 
 [project.optional-dependencies]
