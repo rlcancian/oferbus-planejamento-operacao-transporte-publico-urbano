@@ -50,5 +50,12 @@ export default async function Home() {
     );
   }
 
-  return <PlanningWorkspace result={workspace.result} readiness={workspace.readiness} />;
+  return (
+    <PlanningWorkspace
+      result={workspace.result}
+      readiness={workspace.readiness}
+      march={workspace.march}
+      marchError={workspace.marchError}
+    />
+  );
 }
