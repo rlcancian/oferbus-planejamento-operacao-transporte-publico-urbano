@@ -141,7 +141,9 @@ class PostgresComputationQueue:
                         ComputationJob.organization_id == submission.organization_id,
                         ComputationJob.idempotency_key == submission.idempotency_key,
                     )
-                ).one()
+                ).one_or_none()
+                if existing is None:
+                    raise
                 return _snapshot(*existing)
 
             return _snapshot(run, job)
