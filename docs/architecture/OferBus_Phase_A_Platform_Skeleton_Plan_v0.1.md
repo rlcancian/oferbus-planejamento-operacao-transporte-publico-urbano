@@ -76,7 +76,7 @@ Materialized:
 - root `Makefile` with `bootstrap`, `postgres-up`, `migrate`, `seed`, `doctor`, `dev`, `smoke` and quality commands;
 - `OferBus_Phase_A6_Quality_Gate_and_Local_Startup_v0.1.md` runbook covering Docker and native PostgreSQL paths.
 
-The GitHub Connector commits did not produce a visible GitHub Actions workflow run during this session. Therefore CI execution is not being claimed as PASS yet. The next acceptance action is the explicit workstation run requested by the developer: pull `main`, bootstrap, apply migrations, seed, start OferBus, run the integrated smoke and inspect the browser shell.
+GitHub Actions runs were successfully triggered for the Phase A.6 commits. A green workflow is required for remote CI acceptance; the development-workstation run remains required to validate the actual Ubuntu environment, local PostgreSQL configuration and browser startup.
 
 ## Exit criteria for Phase A
 
