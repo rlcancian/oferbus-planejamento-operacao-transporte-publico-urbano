@@ -27,7 +27,7 @@ class DatabaseStatus(BaseModel):
 
 app = FastAPI(
     title="OferBus API",
-    version="0.8.0",
+    version="0.9.0",
     description="Application boundary for the OferBus 2026 planning platform.",
 )
 app.include_router(identity_router)
@@ -39,7 +39,7 @@ app.include_router(results_router)
 
 @app.get("/health", response_model=HealthStatus, tags=["platform"])
 def health() -> HealthStatus:
-    return HealthStatus(service="oferbus-api", status="ok", version="0.8.0")
+    return HealthStatus(service="oferbus-api", status="ok", version="0.9.0")
 
 
 @app.get("/ready", response_model=DatabaseStatus, tags=["platform"])
