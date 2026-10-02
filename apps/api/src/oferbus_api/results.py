@@ -4,14 +4,26 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import and_, select
+from sqlalchemy.orm import Session
 
+from oferbus_db import (
+    LineDirection,
+    PlanRevision,
+    PlanningProject,
+    Scenario,
+    ScenarioDirectionPlanningInput,
+    ScenarioRevision,
+    TransitLine,
+)
 from oferbus_planning import (
+    PersistedPlanningResult,
     PlanningResultIntegrityError,
     PlanningResultNotFound,
     load_planning_result,
 )
 
-from .identity import Permission, Principal, require_permission
+from .identity import Permission, Principal, database_session, require_permission
 
 
 class PlannedTripResponse(BaseModel):
@@ -54,11 +66,27 @@ class PlanningMetricsResponse(BaseModel):
     distance_semantics: str
 
 
+class PlanningLineContextResponse(BaseModel):
+    public_code: str | None
+    name: str
+
+
+class PlanningResultContextResponse(BaseModel):
+    project_id: uuid.UUID
+    project_name: str
+    scenario_id: uuid.UUID
+    scenario_name: str
+    scenario_revision_id: uuid.UUID
+    scenario_revision_no: int
+    lines: list[PlanningLineContextResponse]
+
+
 class PersistedPlanningResultResponse(BaseModel):
     computation_run_id: uuid.UUID
     plan_revision_id: uuid.UUID
     result_snapshot_id: uuid.UUID
     plan_revision_no: int
+    context: PlanningResultContextResponse
     semantic_layer: str
     engine_id: str
     engine_version: str
@@ -74,21 +102,92 @@ class PersistedPlanningResultResponse(BaseModel):
 router = APIRouter(prefix="/results", tags=["results"])
 
 
-@router.get(
-    "/computations/{run_id}",
-    response_model=PersistedPlanningResultResponse,
-)
-def get_persisted_result(
-    run_id: uuid.UUID,
-    principal: Principal = Depends(require_permission(Permission.RESULT_READ)),
-) -> PersistedPlanningResultResponse:
-    try:
-        persisted = load_planning_result(principal.organization_id, run_id)
-    except PlanningResultNotFound as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    except PlanningResultIntegrityError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+def _context_for_result(
+    session: Session,
+    organization_id: uuid.UUID,
+    persisted: PersistedPlanningResult,
+) -> PlanningResultContextResponse:
+    row = session.execute(
+        select(
+            ScenarioRevision.id.label("scenario_revision_id"),
+            ScenarioRevision.revision_no.label("scenario_revision_no"),
+            Scenario.id.label("scenario_id"),
+            Scenario.name.label("scenario_name"),
+            PlanningProject.id.label("project_id"),
+            PlanningProject.name.label("project_name"),
+        )
+        .join(
+            Scenario,
+            and_(
+                Scenario.organization_id == ScenarioRevision.organization_id,
+                Scenario.id == ScenarioRevision.scenario_id,
+            ),
+        )
+        .join(
+            PlanningProject,
+            and_(
+                PlanningProject.organization_id == Scenario.organization_id,
+                PlanningProject.id == Scenario.project_id,
+            ),
+        )
+        .where(
+            ScenarioRevision.organization_id == organization_id,
+            ScenarioRevision.id == persisted.planning_result.input_fingerprint
+            if False
+            else ScenarioRevision.id
+            == select(PlanRevision.scenario_revision_id)
+            .where(
+                PlanRevision.organization_id == organization_id,
+                PlanRevision.id == persisted.plan_revision_id,
+            )
+            .scalar_subquery(),
+        )
+    ).mappings().one_or_none()
+    if row is None:
+        raise PlanningResultIntegrityError("persisted result has no project/scenario context")
 
+    line_rows = session.execute(
+        select(TransitLine.public_code, TransitLine.name)
+        .select_from(ScenarioDirectionPlanningInput)
+        .join(
+            LineDirection,
+            and_(
+                LineDirection.organization_id == ScenarioDirectionPlanningInput.organization_id,
+                LineDirection.id == ScenarioDirectionPlanningInput.direction_id,
+            ),
+        )
+        .join(
+            TransitLine,
+            and_(
+                TransitLine.organization_id == LineDirection.organization_id,
+                TransitLine.id == LineDirection.line_id,
+            ),
+        )
+        .where(
+            ScenarioDirectionPlanningInput.organization_id == organization_id,
+            ScenarioDirectionPlanningInput.scenario_revision_id == row["scenario_revision_id"],
+        )
+        .distinct()
+        .order_by(TransitLine.public_code, TransitLine.name)
+    ).all()
+
+    return PlanningResultContextResponse(
+        project_id=row["project_id"],
+        project_name=row["project_name"],
+        scenario_id=row["scenario_id"],
+        scenario_name=row["scenario_name"],
+        scenario_revision_id=row["scenario_revision_id"],
+        scenario_revision_no=row["scenario_revision_no"],
+        lines=[PlanningLineContextResponse(public_code=item.public_code, name=item.name) for item in line_rows],
+    )
+
+
+def _response_for_result(
+    session: Session,
+    organization_id: uuid.UUID,
+    run_id: uuid.UUID,
+    persisted: PersistedPlanningResult,
+) -> PersistedPlanningResultResponse:
     result = persisted.planning_result
     trips = [
         PlannedTripResponse(
@@ -118,6 +217,7 @@ def get_persisted_result(
         plan_revision_id=persisted.plan_revision_id,
         result_snapshot_id=persisted.result_snapshot_id,
         plan_revision_no=persisted.revision_no,
+        context=_context_for_result(session, organization_id, persisted),
         semantic_layer=result.semantic_layer.value,
         engine_id=result.engine_id,
         engine_version=result.engine_version,
@@ -129,3 +229,48 @@ def get_persisted_result(
         metrics=PlanningMetricsResponse(**result.metrics.__dict__),
         provenance_notes=list(result.provenance_notes),
     )
+
+
+def _load_response(
+    session: Session,
+    principal: Principal,
+    run_id: uuid.UUID,
+) -> PersistedPlanningResultResponse:
+    try:
+        persisted = load_planning_result(principal.organization_id, run_id)
+        return _response_for_result(session, principal.organization_id, run_id, persisted)
+    except PlanningResultNotFound as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except PlanningResultIntegrityError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@router.get("/latest", response_model=PersistedPlanningResultResponse)
+def get_latest_persisted_result(
+    principal: Principal = Depends(require_permission(Permission.RESULT_READ)),
+    session: Session = Depends(database_session),
+) -> PersistedPlanningResultResponse:
+    run_id = session.execute(
+        select(PlanRevision.computation_run_id)
+        .where(
+            PlanRevision.organization_id == principal.organization_id,
+            PlanRevision.computation_run_id.is_not(None),
+        )
+        .order_by(PlanRevision.created_at.desc(), PlanRevision.id.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if run_id is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="no persisted planning result exists")
+    return _load_response(session, principal, run_id)
+
+
+@router.get(
+    "/computations/{run_id}",
+    response_model=PersistedPlanningResultResponse,
+)
+def get_persisted_result(
+    run_id: uuid.UUID,
+    principal: Principal = Depends(require_permission(Permission.RESULT_READ)),
+    session: Session = Depends(database_session),
+) -> PersistedPlanningResultResponse:
+    return _load_response(session, principal, run_id)
