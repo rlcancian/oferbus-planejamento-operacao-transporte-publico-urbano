@@ -89,17 +89,17 @@ const DEVELOPMENT_ORGANIZATION_ID = "d0568fff-011a-55a6-9083-321a787ad79d";
 const DEVELOPMENT_SUBJECT = "dev:rafael";
 
 function apiBase(): string {
-  return process.env.OFERBUS_API_URL ?? "http://127.0.0.1:8010";
+  return process.env.OFERBUS_API_URL || "http://127.0.0.1:8010";
 }
 
 function resultHeaders(): HeadersInit {
-  const environment = (process.env.OFERBUS_ENV ?? "development").toLowerCase();
+  const environment = (process.env.OFERBUS_ENV || "development").toLowerCase();
   if (environment === "production" || environment === "prod") return {};
 
   return {
-    "X-OferBus-Subject": process.env.OFERBUS_WEB_DEV_SUBJECT ?? DEVELOPMENT_SUBJECT,
+    "X-OferBus-Subject": process.env.OFERBUS_WEB_DEV_SUBJECT || DEVELOPMENT_SUBJECT,
     "X-OferBus-Organization-Id":
-      process.env.OFERBUS_WEB_DEV_ORGANIZATION_ID ?? DEVELOPMENT_ORGANIZATION_ID,
+      process.env.OFERBUS_WEB_DEV_ORGANIZATION_ID || DEVELOPMENT_ORGANIZATION_ID,
     "X-Correlation-Id": "web-planning-workspace",
   };
 }
