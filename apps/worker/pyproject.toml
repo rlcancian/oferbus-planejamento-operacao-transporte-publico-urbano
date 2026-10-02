@@ -1,11 +1,13 @@
 [project]
 name = "oferbus-worker"
-version = "0.1.0"
+version = "0.2.0"
 description = "OferBus asynchronous computation worker"
 requires-python = ">=3.12,<3.15"
 dependencies = [
+  "oferbus-core==0.1.0",
   "oferbus-db==0.1.0",
   "oferbus-jobs==0.1.0",
+  "oferbus-planning==0.1.0",
 ]
 
 [project.scripts]
