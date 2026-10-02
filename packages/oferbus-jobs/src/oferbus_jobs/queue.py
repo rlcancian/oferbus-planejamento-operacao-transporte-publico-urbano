@@ -25,6 +25,7 @@ class RunSubmission:
     engine_version: str
     engine_source_revision: str | None = None
     deterministic_seed: int | None = None
+    input_fingerprint: str | None = None
     idempotency_key: str | None = None
     payload: dict[str, Any] | None = None
     max_attempts: int = 3
@@ -34,9 +35,15 @@ class RunSubmission:
 class RunSnapshot:
     run_id: uuid.UUID
     organization_id: uuid.UUID
+    scenario_revision_id: uuid.UUID
     run_kind: str
     semantic_layer: str
+    engine_version: str
+    engine_source_revision: str | None
+    deterministic_seed: int | None
     status: str
+    input_fingerprint: str | None
+    output_fingerprint: str | None
     payload: dict[str, Any]
     progress_percent: int
     attempt_count: int
@@ -53,7 +60,13 @@ class JobQueue(Protocol):
     def get(self, organization_id: uuid.UUID, run_id: uuid.UUID) -> RunSnapshot | None: ...
     def claim(self, worker_id: str, lease_seconds: int = 60) -> RunSnapshot | None: ...
     def heartbeat(self, run_id: uuid.UUID, worker_id: str, progress_percent: int | None = None, lease_seconds: int = 60) -> None: ...
-    def succeed(self, run_id: uuid.UUID, worker_id: str, diagnostics: dict[str, Any] | None = None) -> None: ...
+    def succeed(
+        self,
+        run_id: uuid.UUID,
+        worker_id: str,
+        diagnostics: dict[str, Any] | None = None,
+        output_fingerprint: str | None = None,
+    ) -> None: ...
     def fail(self, run_id: uuid.UUID, worker_id: str, error: str, retryable: bool = True) -> None: ...
 
 
@@ -65,9 +78,15 @@ def _snapshot(run: ComputationRun, job: ComputationJob) -> RunSnapshot:
     return RunSnapshot(
         run_id=run.id,
         organization_id=run.organization_id,
+        scenario_revision_id=run.scenario_revision_id,
         run_kind=run.run_kind,
         semantic_layer=run.semantic_layer,
+        engine_version=run.engine_version,
+        engine_source_revision=run.engine_source_revision,
+        deterministic_seed=run.deterministic_seed,
         status=run.status,
+        input_fingerprint=run.input_fingerprint,
+        output_fingerprint=run.output_fingerprint,
         payload=job.payload or {},
         progress_percent=job.progress_percent,
         attempt_count=job.attempt_count,
@@ -111,6 +130,7 @@ class PostgresComputationQueue:
                 engine_source_revision=submission.engine_source_revision,
                 deterministic_seed=submission.deterministic_seed,
                 status="queued",
+                input_fingerprint=submission.input_fingerprint,
             )
             session.add(run)
             session.flush()
@@ -237,6 +257,7 @@ class PostgresComputationQueue:
         run_id: uuid.UUID,
         worker_id: str,
         diagnostics: dict[str, Any] | None = None,
+        output_fingerprint: str | None = None,
     ) -> None:
         now = datetime.now(UTC)
         with self._session_factory() as session:
@@ -256,6 +277,7 @@ class PostgresComputationQueue:
             run, job = row
             run.status = "succeeded"
             run.completed_at = now
+            run.output_fingerprint = output_fingerprint
             run.diagnostics = diagnostics or {}
             job.progress_percent = 100
             job.heartbeat_at = now
