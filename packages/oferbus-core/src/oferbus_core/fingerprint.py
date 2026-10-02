@@ -30,3 +30,27 @@ def canonical_json(value: Any) -> str:
 def fingerprint(value: Any) -> str:
     payload = canonical_json(value).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def planning_result_payload(result: Any) -> dict[str, Any]:
+    """Return the canonical material identity of a planning result.
+
+    The persisted/output fingerprint deliberately excludes the fingerprint field
+    itself so the same function can verify a reconstructed immutable result.
+    """
+
+    return {
+        "semantic_layer": result.semantic_layer,
+        "engine_id": result.engine_id,
+        "engine_version": result.engine_version,
+        "input_fingerprint": result.input_fingerprint,
+        "trips": result.trips,
+        "effective_fleet": result.effective_fleet,
+        "vehicle_blocks": result.vehicle_blocks,
+        "metrics": result.metrics,
+        "provenance_notes": result.provenance_notes,
+    }
+
+
+def planning_result_fingerprint(result: Any) -> str:
+    return fingerprint(planning_result_payload(result))
