@@ -1,6 +1,7 @@
 from .audit_models import AuditEvent
 from .base import Base
 from .database import check_database, get_engine, get_session_factory
+from .jobs import ComputationJob
 from .models import (
     AppUser,
     ComputationRun,
@@ -21,6 +22,7 @@ __all__ = [
     "AppUser",
     "AuditEvent",
     "Base",
+    "ComputationJob",
     "ComputationRun",
     "LineDirection",
     "Municipality",
