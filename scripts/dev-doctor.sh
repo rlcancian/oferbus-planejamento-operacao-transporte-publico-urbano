@@ -37,13 +37,36 @@ else
   fail=1
 fi
 
+if [[ -x .venv/bin/python ]]; then
+  if .venv/bin/python - <<'PY'
+modules = (
+    "oferbus_core",
+    "oferbus_db",
+    "oferbus_planning",
+    "oferbus_jobs",
+    "oferbus_ai",
+    "oferbus_api",
+    "oferbus_worker",
+)
+for module in modules:
+    __import__(module)
+print("PASS  Python packages: " + ", ".join(modules))
+PY
+  then
+    :
+  else
+    echo "FAIL  Python package set is incomplete or stale; run make bootstrap"
+    fail=1
+  fi
+fi
+
 if [[ -x .venv/bin/python && -f .env ]]; then
   if .venv/bin/python - <<'PY'
 from oferbus_db import check_database
 status = check_database()
 print(f"PASS  PostgreSQL: {status['database']} · server {status['server_version']} · migration {status['migration']}")
-if status['migration'] != '0004_planning_inputs':
-    raise SystemExit(f"expected migration 0004_planning_inputs, got {status['migration']}")
+if status['migration'] != '0005_planning_results':
+    raise SystemExit(f"expected migration 0005_planning_results, got {status['migration']}; run make migrate")
 PY
   then
     :
