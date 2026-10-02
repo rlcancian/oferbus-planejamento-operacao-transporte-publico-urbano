@@ -62,19 +62,27 @@ Materialized:
 
 Detailed design: `architecture/OferBus_Phase_B2_Planning_Input_Persistence_v0.1.md`.
 
-## B.3 — deterministic planning worker — PRÓXIMA
+## B.3 — deterministic planning worker — CONCLUÍDA
 
-Replace `platform-smoke` as the only computational handler with a real planning run:
+Materialized:
 
-- `run_kind=core-planning`;
-- load one immutable `ScenarioRevision`;
-- translate persisted inputs to `oferbus-core` contracts;
-- execute the selected semantic layer;
-- report progress/heartbeat;
-- preserve exact engine version and fingerprints;
-- fail deterministically on invalid/incomplete input.
+- `run_kind=core-planning` in the asynchronous worker;
+- API submission derived from the immutable `ScenarioRevision`, not from ad-hoc scientific payloads;
+- `input_fingerprint` captured at enqueue and verified again by the worker;
+- semantic layer derived from the persisted snapshot and rechecked at execution;
+- engine descriptor/version compatibility check between queued run and worker;
+- execution through `ReferencePlanningAdapter` / `oferbus-core`;
+- progress/heartbeat boundaries for load/verify, compute and finalize;
+- deterministic domain/input failures marked non-retryable;
+- unexpected infrastructure failures remain eligible for bounded retry;
+- `output_fingerprint` persisted on successful `ComputationRun`;
+- compact technical diagnostics proving trips/fleet and provenance without pretending to be final result persistence;
+- strict idempotency compatibility checks for scenario, run kind, semantic layer, engine, fingerprints and payload;
+- integrated PostgreSQL/API/worker smoke executing the real planning fixture end to end.
 
-## B.4 — plan and result persistence — PENDENTE
+Detailed design: `architecture/OferBus_Phase_B3_Deterministic_Planning_Worker_v0.1.md`.
+
+## B.4 — plan and result persistence — PRÓXIMA
 
 Persist the output lineage without mutable overwrite:
 
