@@ -69,10 +69,16 @@ def _typical_periods(
 def typical_periods_code_2008(
     original_curve: Sequence[float], *, period_adjustment: int, min_period_minutes: int = 30,
 ) -> TypicalPeriodsResult:
-    """2008c code semantics.
+    """Normalized per-direction reconstruction of the 2008c MPTDC semantics.
 
     ``Realiza_Ajuste_De_Curvas`` temporarily forces MDV adjustment level 2 and
     ``Calcula_Periodos_Tipicos`` uses ``AjustePeriodo * 2`` horizontal bands.
+
+    This function intentionally isolates one direction. The original radial
+    routine loops over both directions while sharing a one-dimensional ``Faixa``
+    array and a ``Maxi`` computed from the active global ``gSentido``. That
+    cross-direction global-state behavior is tracked separately as candidate
+    defect BC-009 and is not silently reproduced here.
     """
     adjusted = adjust_curve_legacy(original_curve, 2)
     return _typical_periods(
