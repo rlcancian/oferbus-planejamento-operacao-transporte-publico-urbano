@@ -1,0 +1,17 @@
+{
+  "name": "oferbus",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "web:dev": "npm --workspace @oferbus/web run dev",
+    "web:build": "npm --workspace @oferbus/web run build",
+    "web:typecheck": "npm --workspace @oferbus/web run typecheck"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  }
+}

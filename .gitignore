@@ -6,3 +6,13 @@ __pycache__/
 .env.*
 !.env.example
 .DS_Store
+
+node_modules/
+.next/
+out/
+coverage/
+dist/
+*.tsbuildinfo
+
+.idea/
+.vscode/
