@@ -10,7 +10,7 @@ from .contracts import (
     SemanticLayer,
     VehiclePlanningInput,
 )
-from .fingerprint import canonical_json, fingerprint
+from .fingerprint import canonical_json, fingerprint, planning_result_fingerprint, planning_result_payload
 from .reference_bridge import ENGINE_ID, ENGINE_VERSION, ReferencePlanningAdapter
 from .validation import validate_planning_input
 
@@ -27,6 +27,8 @@ __all__ = [
     "VehiclePlanningInput",
     "canonical_json",
     "fingerprint",
+    "planning_result_fingerprint",
+    "planning_result_payload",
     "ENGINE_ID",
     "ENGINE_VERSION",
     "ReferencePlanningAdapter",
