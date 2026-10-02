@@ -17,6 +17,13 @@ from .models import (
     TransitLine,
     TransitOperator,
 )
+from .planning_models import (
+    ObservedTripDataset,
+    ObservedTripDatasetRevision,
+    ObservedTripObservation,
+    ScenarioDirectionPlanningInput,
+    ScenarioPlanningInput,
+)
 
 __all__ = [
     "AppUser",
@@ -26,11 +33,16 @@ __all__ = [
     "ComputationRun",
     "LineDirection",
     "Municipality",
+    "ObservedTripDataset",
+    "ObservedTripDatasetRevision",
+    "ObservedTripObservation",
     "Organization",
     "OrganizationMembership",
     "PlanningProject",
     "ProjectLine",
     "Scenario",
+    "ScenarioDirectionPlanningInput",
+    "ScenarioPlanningInput",
     "ScenarioRevision",
     "Terminal",
     "TransitLine",
