@@ -8,14 +8,16 @@ A arqueologia do sistema legado foi consolidada, o núcleo computacional de refe
 
 A **Phase A — Platform Foundation** está concluída e foi validada tanto no GitHub Actions quanto no notebook de desenvolvimento: PostgreSQL 18, migrations, seed, FastAPI, worker, Next.js e smoke integrado estão operacionais.
 
-A **Phase B — Core Planning Vertical Slice** está em andamento:
+A **Phase B — Core Planning Vertical Slice** também está concluída e validada ponta a ponta:
 
 - **B.1 — Production Planning Contracts and Reference Bridge:** concluída;
 - **B.2 — Planning Input Persistence and Application Boundary:** concluída;
 - **B.3 — Deterministic Planning Worker:** concluída;
 - **B.4 — Plan and Result Persistence:** concluída;
 - **B.5 — Web Planning Result Workspace:** concluída;
-- **B.6 — Integrated Acceptance and Regression Gate:** próxima.
+- **B.6 — Integrated Acceptance and Regression Gate:** concluída.
+
+O próximo horizonte arquitetural é a **Phase C — March Diagram and Versioned Operational Editing**.
 
 ## Arquitetura aceita
 
@@ -52,6 +54,8 @@ ScenarioRevision
 `PlanRevision` é separado de `ResultSnapshot` para permitir futuras revisões manuais sem sobrescrever o histórico computado. A ordem das viagens nos blocos é relacional, preparando a Phase C e o Gráfico de Marcha. O resultado persistido é reconstruído pelo `packages/oferbus-planning` e só é aceito se reproduzir exatamente o `output_fingerprint` calculado pelo `oferbus-core`.
 
 A B.5 transformou a raiz do Next.js no primeiro workspace operacional do OferBus. O frontend consome somente a API autoritativa e apresenta contexto de projeto/cenário/linha, timetable, blocos de veículo, frota, demanda, ocupação, custos e provenance. Estados sem resultado ou com infraestrutura indisponível são exibidos explicitamente; nenhum dado é inventado no frontend.
+
+A B.6 fechou a fatia com golden master determinístico e um gate CI que executa planejamento real, persiste/reconstrói o resultado, inicia o Next.js em modo de produção e valida semanticamente o workspace renderizado.
 
 A API `0.9.0` expõe resultados verificados em:
 
@@ -93,7 +97,7 @@ Em outro terminal, com os serviços ativos:
 make smoke
 ```
 
-O smoke integrado inclui planejamento real, persistência relacional, reconstrução pelo mesmo output fingerprint e descoberta do resultado mais recente com contexto de projeto/cenário/linha.
+O smoke é repetível e inclui planejamento real, persistência relacional, reconstrução pelo mesmo output fingerprint e descoberta do resultado mais recente com contexto de projeto/cenário/linha.
 
 ## Estrutura
 
@@ -108,7 +112,7 @@ O smoke integrado inclui planejamento real, persistência relacional, reconstru�
 - `reference-core/` — implementação arqueológica executável e testes de caracterização;
 - `migrations/` — migrations Alembic;
 - `infra/dev/` — infraestrutura local opcional;
-- `scripts/` — bootstrap, seed, smoke e diagnóstico local;
+- `scripts/` — bootstrap, seed, smoke, aceitação web e diagnóstico local;
 - `docs/` — arqueologia, domínio, computação, persistência, decisões e arquitetura.
 
 ## Princípios
@@ -119,6 +123,7 @@ O smoke integrado inclui planejamento real, persistência relacional, reconstru�
 - alterações manuais e ações da IA são comandos auditáveis;
 - cenários, execuções, planos e resultados são versionados para reprodutibilidade;
 - o Gráfico de Marcha permanece um instrumento de engenharia preciso;
-- visual moderno e 3D complementam, mas não prejudicam, a precisão operacional.
+- visual moderno e 3D complementam, mas não prejudicam, a precisão operacional;
+- qualquer edição operacional futura deriva uma nova `PlanRevision`; resultados computados históricos permanecem imutáveis.
 
 Consulte `docs/README.md` e `docs/architecture/OferBus_Phase_B_Core_Planning_Vertical_Slice_Plan_v0.1.md` para o estado técnico detalhado.
