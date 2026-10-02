@@ -14,8 +14,8 @@ A **Phase B — Core Planning Vertical Slice** está em andamento:
 - **B.2 — Planning Input Persistence and Application Boundary:** concluída;
 - **B.3 — Deterministic Planning Worker:** concluída;
 - **B.4 — Plan and Result Persistence:** concluída;
-- **B.5 — Web Planning Result Workspace:** próxima;
-- **B.6 — Integrated Acceptance and Regression Gate:** pendente.
+- **B.5 — Web Planning Result Workspace:** concluída;
+- **B.6 — Integrated Acceptance and Regression Gate:** próxima.
 
 ## Arquitetura aceita
 
@@ -51,10 +51,13 @@ ScenarioRevision
 
 `PlanRevision` é separado de `ResultSnapshot` para permitir futuras revisões manuais sem sobrescrever o histórico computado. A ordem das viagens nos blocos é relacional, preparando a Phase C e o Gráfico de Marcha. O resultado persistido é reconstruído pelo `packages/oferbus-planning` e só é aceito se reproduzir exatamente o `output_fingerprint` calculado pelo `oferbus-core`.
 
-A API `0.8.0` expõe o resultado verificado em:
+A B.5 transformou a raiz do Next.js no primeiro workspace operacional do OferBus. O frontend consome somente a API autoritativa e apresenta contexto de projeto/cenário/linha, timetable, blocos de veículo, frota, demanda, ocupação, custos e provenance. Estados sem resultado ou com infraestrutura indisponível são exibidos explicitamente; nenhum dado é inventado no frontend.
+
+A API `0.9.0` expõe resultados verificados em:
 
 ```text
 GET /results/computations/{run_id}
+GET /results/latest
 ```
 
 `legacy-exact` e `normalized` são distinguidos explicitamente. `modern` permanece indisponível até existir um modelo moderno real; a plataforma não simula capacidades ainda não implementadas.
@@ -82,17 +85,19 @@ make dev
 
 Abra `http://127.0.0.1:3010`.
 
+Se já existir um resultado persistido, a página inicial abre diretamente o workspace operacional. Caso contrário, o estado vazio indica que ainda é necessário executar `core-planning`.
+
 Em outro terminal, com os serviços ativos:
 
 ```bash
 make smoke
 ```
 
-O smoke integrado inclui planejamento real, persistência relacional e reconstrução do resultado pelo mesmo output fingerprint.
+O smoke integrado inclui planejamento real, persistência relacional, reconstrução pelo mesmo output fingerprint e descoberta do resultado mais recente com contexto de projeto/cenário/linha.
 
 ## Estrutura
 
-- `apps/web/` — aplicação Next.js;
+- `apps/web/` — aplicação Next.js e workspace operacional;
 - `apps/api/` — API FastAPI;
 - `apps/worker/` — worker Python para computações longas e planejamento determinístico;
 - `packages/oferbus-ai/` — contratos de provider LLM e ferramentas estruturadas do Copilot;
