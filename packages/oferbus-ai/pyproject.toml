@@ -1,0 +1,22 @@
+[project]
+name = "oferbus-ai"
+version = "0.1.0"
+description = "Provider-neutral AI and structured tool boundary for OferBus 2026"
+requires-python = ">=3.13,<3.15"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0,<10",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
