@@ -27,6 +27,54 @@ source .venv/bin/activate
 API_PORT="${API_PORT:-8010}"
 WEB_PORT="${WEB_PORT:-3010}"
 
+port_is_free() {
+  local host="$1"
+  local port="$2"
+  python - "$host" "$port" <<'PY'
+import socket
+import sys
+
+host = sys.argv[1]
+port = int(sys.argv[2])
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    sock.bind((host, port))
+except OSError:
+    raise SystemExit(1)
+finally:
+    sock.close()
+PY
+}
+
+show_port_owner() {
+  local port="$1"
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltnp "sport = :${port}" 2>/dev/null || true
+  fi
+}
+
+preflight_port() {
+  local label="$1"
+  local host="$2"
+  local port="$3"
+
+  if port_is_free "$host" "$port"; then
+    echo "PASS  ${label} port ${host}:${port} is free"
+    return 0
+  fi
+
+  echo "ERROR: ${label} port ${host}:${port} is already in use." >&2
+  echo "OferBus did not start any development process." >&2
+  show_port_owner "$port" >&2
+  echo "Stop the existing process intentionally, or change the corresponding port in .env." >&2
+  return 1
+}
+
+echo "OferBus development preflight:"
+preflight_port "API" "127.0.0.1" "$API_PORT"
+preflight_port "Web" "0.0.0.0" "$WEB_PORT"
+
 cleanup() {
   trap - INT TERM EXIT
   for pid in ${API_PID:-} ${WORKER_PID:-} ${WEB_PID:-}; do
