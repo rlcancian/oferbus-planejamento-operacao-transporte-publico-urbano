@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
+
+from oferbus_db import check_database
 
 
 class HealthStatus(BaseModel):
@@ -8,13 +11,40 @@ class HealthStatus(BaseModel):
     version: str
 
 
+class DatabaseStatus(BaseModel):
+    status: str
+    database: str
+    schema_name: str
+    server_version: str
+    migration: str
+
+
 app = FastAPI(
     title="OferBus API",
-    version="0.1.0",
+    version="0.2.0",
     description="Application boundary for the OferBus 2026 planning platform.",
 )
 
 
 @app.get("/health", response_model=HealthStatus, tags=["platform"])
 def health() -> HealthStatus:
-    return HealthStatus(service="oferbus-api", status="ok", version="0.1.0")
+    return HealthStatus(service="oferbus-api", status="ok", version="0.2.0")
+
+
+@app.get("/ready", response_model=DatabaseStatus, tags=["platform"])
+def ready() -> DatabaseStatus:
+    try:
+        database = check_database()
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="PostgreSQL is not ready") from exc
+
+    if database["migration"] == "unversioned":
+        raise HTTPException(status_code=503, detail="PostgreSQL is reachable but migrations are not applied")
+
+    return DatabaseStatus(
+        status="ready",
+        database=database["database"],
+        schema_name="oferbus",
+        server_version=database["server_version"],
+        migration=database["migration"],
+    )
