@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 from oferbus_legacy_core import (
     CostParameters,
@@ -25,7 +25,7 @@ from .contracts import (
     PlanningResult,
     SemanticLayer,
 )
-from .fingerprint import fingerprint
+from .fingerprint import fingerprint, planning_result_fingerprint
 from .validation import validate_planning_input
 
 
@@ -170,32 +170,19 @@ class ReferencePlanningAdapter:
         block_result = {number: tuple(indexes) for number, indexes in blocks.items()}
 
         metrics_result = PlanningMetricsResult(**asdict(metrics))
-        input_fingerprint = fingerprint(planning_input)
-        provenance_notes = self._provenance_notes(planning_input.semantic_layer)
-        output_payload = {
-            "semantic_layer": planning_input.semantic_layer,
-            "engine_id": ENGINE_ID,
-            "engine_version": ENGINE_VERSION,
-            "input_fingerprint": input_fingerprint,
-            "trips": trip_results,
-            "effective_fleet": effective_fleet,
-            "vehicle_blocks": block_result,
-            "metrics": metrics_result,
-            "provenance_notes": provenance_notes,
-        }
-
-        return PlanningResult(
+        result = PlanningResult(
             semantic_layer=planning_input.semantic_layer,
             engine_id=ENGINE_ID,
             engine_version=ENGINE_VERSION,
-            input_fingerprint=input_fingerprint,
-            output_fingerprint=fingerprint(output_payload),
+            input_fingerprint=fingerprint(planning_input),
+            output_fingerprint="",
             trips=trip_results,
             effective_fleet=effective_fleet,
             vehicle_blocks=block_result,
             metrics=metrics_result,
-            provenance_notes=provenance_notes,
+            provenance_notes=self._provenance_notes(planning_input.semantic_layer),
         )
+        return replace(result, output_fingerprint=planning_result_fingerprint(result))
 
     @staticmethod
     def _provenance_notes(layer: SemanticLayer) -> tuple[str, ...]:
