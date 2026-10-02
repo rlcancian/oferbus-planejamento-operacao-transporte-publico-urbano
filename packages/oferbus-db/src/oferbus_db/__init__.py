@@ -24,6 +24,7 @@ from .planning_models import (
     ScenarioDirectionPlanningInput,
     ScenarioPlanningInput,
 )
+from .result_models import PlanRevision, PlannedTrip, ResultSnapshot, VehicleBlock, VehicleBlockTrip
 
 __all__ = [
     "AppUser",
@@ -38,8 +39,11 @@ __all__ = [
     "ObservedTripObservation",
     "Organization",
     "OrganizationMembership",
+    "PlanRevision",
+    "PlannedTrip",
     "PlanningProject",
     "ProjectLine",
+    "ResultSnapshot",
     "Scenario",
     "ScenarioDirectionPlanningInput",
     "ScenarioPlanningInput",
@@ -47,6 +51,8 @@ __all__ = [
     "Terminal",
     "TransitLine",
     "TransitOperator",
+    "VehicleBlock",
+    "VehicleBlockTrip",
     "check_database",
     "get_engine",
     "get_session_factory",
