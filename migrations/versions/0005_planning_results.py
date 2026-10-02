@@ -29,6 +29,7 @@ def upgrade() -> None:
         sa.Column("revision_no", sa.Integer(), nullable=False),
         sa.Column("source_kind", sa.String(32), nullable=False, server_default="computed"),
         sa.Column("semantic_layer", sa.String(32), nullable=False),
+        sa.Column("engine_id", sa.String(80), nullable=False),
         sa.Column("engine_version", sa.String(80), nullable=False),
         sa.Column("input_fingerprint", sa.String(128), nullable=False),
         sa.Column("output_fingerprint", sa.String(128), nullable=False),
@@ -79,7 +80,7 @@ def upgrade() -> None:
         sa.Column("service_level", sa.Integer()),
         sa.CheckConstraint("sequence_no > 0", name="ck_planned_trip_sequence_positive"),
         sa.CheckConstraint("legacy_direction_number > 0", name="ck_planned_trip_legacy_direction_positive"),
-        sa.CheckConstraint("vehicle_block_no > 0", name="ck_planned_trip_vehicle_block_positive"),
+        sa.CheckConstraint("vehicle_block_no >= 0", name="ck_planned_trip_vehicle_block_nonnegative"),
         sa.CheckConstraint(
             "arrival_service_minute >= departure_service_minute",
             name="ck_planned_trip_service_time_order",
