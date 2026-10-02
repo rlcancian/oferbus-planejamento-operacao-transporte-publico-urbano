@@ -9,7 +9,7 @@ services:
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
-      - oferbus-postgres-data:/var/lib/postgresql
+      - oferbus-postgres18-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-oferbus} -d ${POSTGRES_DB:-oferbus}"]
       interval: 3s
@@ -17,4 +17,4 @@ services:
       retries: 20
 
 volumes:
-  oferbus-postgres-data:
+  oferbus-postgres18-data:
