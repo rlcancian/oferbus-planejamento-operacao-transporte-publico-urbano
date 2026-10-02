@@ -12,8 +12,8 @@ A implementação está na **Phase A — Platform Skeleton**:
 - **A.2 — Persistence Baseline:** concluída;
 - **A.3 — Identity and Tenancy Boundary:** concluída;
 - **A.4 — Asynchronous Computation Boundary:** concluída;
-- **A.5 — AI and Tool Boundary:** próxima;
-- **A.6 — Quality Gate and Local Startup:** pendente.
+- **A.5 — AI and Tool Boundary:** concluída;
+- **A.6 — Quality Gate and Local Startup:** próxima.
 
 ## Arquitetura aceita
 
@@ -25,22 +25,25 @@ A implementação está na **Phase A — Platform Skeleton**:
 - fila inicial de jobs apoiada em PostgreSQL, acessada por uma abstração `JobQueue`;
 - workers Python com lease, heartbeat, retry, idempotência e progresso por SSE;
 - SVG/D3 para engenharia 2D e Three.js/React Three Fiber para visualizações 3D quando agregarem valor;
-- OferBus Copilot/Planning Agent como componente nativo, sempre operando por ferramentas e comandos validados;
+- OferBus Copilot/Planning Agent como componente nativo, provider-neutral e sempre operando por ferramentas estruturadas, permissões e confirmações;
 - monólito modular, não microserviços prematuros.
 
-## Fundação multiusuário
+## Fundação multiusuário e Copilot
 
 A baseline física já inclui organizações/usuários, memberships, municípios/operadores/terminais, linhas/sentidos, projetos, cenários/revisões, `ComputationRun`, auditoria e metadados de execução assíncrona. As relações tenant-owned críticas usam foreign keys compostas com `organization_id` para impedir referências cruzadas entre organizações no próprio banco.
 
 A autenticação possui fronteira substituível; o desenvolvimento usa um adaptador local explicitamente proibido em produção. A aplicação resolve uma organização ativa e aplica RBAC (`owner`, `admin`, `planner`, `viewer`).
 
-A API expõe `/health`, `/ready`, `/identity/me` e a fronteira `/computations`. A landing Next.js consulta `/ready` e indica visualmente quando PostgreSQL e migrations estão ativos.
+A fronteira de IA já existe em `packages/oferbus-ai`. Nenhum LLM tem acesso direto a SQL. O provider ainda está deliberadamente `unconfigured`; ferramentas disponíveis são allow-listed, herdam as permissões do usuário e ações de cálculo/mutação exigem confirmação na baseline atual.
+
+A API expõe `/health`, `/ready`, `/identity/me`, `/computations` e `/ai`. A landing Next.js consulta `/ready` e indica visualmente quando PostgreSQL e migrations estão ativos.
 
 ## Estrutura
 
 - `apps/web/` — aplicação Next.js;
 - `apps/api/` — API FastAPI;
 - `apps/worker/` — worker Python para computações longas;
+- `packages/oferbus-ai/` — contratos de provider LLM e ferramentas estruturadas do Copilot;
 - `packages/oferbus-db/` — persistência SQLAlchemy/PostgreSQL;
 - `packages/oferbus-jobs/` — contrato e implementação inicial da fila assíncrona;
 - `packages/oferbus-core/` — destino do motor computacional de produção;
