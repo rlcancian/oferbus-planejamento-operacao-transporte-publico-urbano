@@ -18,6 +18,9 @@ from oferbus_core import (
     validate_planning_input,
 )
 
+NORMALIZED_GOLDEN_INPUT_FINGERPRINT = "98add8a4013c8104444b8a93c629869a2c5304b9f598b14cf3e2621e72b95974"
+NORMALIZED_GOLDEN_OUTPUT_FINGERPRINT = "eda24324f17235703f6c004e7fc60c338b16059828a896fb11a9e1e447e6bd48"
+
 
 def fixture_input(layer: SemanticLayer = SemanticLayer.NORMALIZED) -> PlanningInput:
     start, end = 60, 120
@@ -73,6 +76,20 @@ def test_reference_bridge_executes_characterized_normalized_slice() -> None:
     assert result.metrics.effective_fleet == result.effective_fleet
     assert 0 <= (result.metrics.mean_occupancy_rate or 0) <= 1
     assert result.metrics.daily_total_cost == pytest.approx(result.metrics.total_distance_km * 2.0)
+    assert result.metrics.distance_semantics == "direction-weighted"
+
+
+def test_normalized_phase_b_fixture_matches_golden_master() -> None:
+    result = ReferencePlanningAdapter().execute(fixture_input())
+
+    assert result.input_fingerprint == NORMALIZED_GOLDEN_INPUT_FINGERPRINT
+    assert result.output_fingerprint == NORMALIZED_GOLDEN_OUTPUT_FINGERPRINT
+    assert len(result.trips) == 7
+    assert result.effective_fleet == 2
+    assert result.metrics.total_trips == 7
+    assert result.metrics.total_passengers == 61
+    assert result.metrics.total_distance_km == pytest.approx(56.0)
+    assert result.metrics.daily_total_cost == pytest.approx(112.0)
     assert result.metrics.distance_semantics == "direction-weighted"
 
 
