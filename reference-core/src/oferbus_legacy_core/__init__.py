@@ -17,6 +17,19 @@ from .traffic_curves import (
 )
 from .typical_periods import TypicalPeriodsResult, typical_periods_code_2008, typical_periods_manual_2005
 from .timetable import PlannedTrip, DirectionPlanningData, MinimumTimetableConfig, minimum_timetable_2007_legacy
+from .operations import (
+    LinkKind,
+    OperationalTrip,
+    encode_legacy_links,
+    decode_legacy_links,
+    clear_non_manual_links,
+    link_direct_trips_legacy,
+    link_storage_legacy,
+    link_garages_legacy,
+    allocate_fleet_legacy,
+    build_basic_link_graph_legacy,
+    vehicle_blocks,
+)
 
 __all__ = [
     "TripObservation", "VehicleModel", "passengers_per_minute", "original_curve",
@@ -27,4 +40,8 @@ __all__ = [
     "renewal_index_curves_legacy", "TypicalPeriodsResult", "typical_periods_code_2008",
     "typical_periods_manual_2005", "PlannedTrip", "DirectionPlanningData",
     "MinimumTimetableConfig", "minimum_timetable_2007_legacy",
+    "LinkKind", "OperationalTrip", "encode_legacy_links", "decode_legacy_links",
+    "clear_non_manual_links", "link_direct_trips_legacy", "link_storage_legacy",
+    "link_garages_legacy", "allocate_fleet_legacy", "build_basic_link_graph_legacy",
+    "vehicle_blocks",
 ]
