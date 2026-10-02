@@ -19,9 +19,12 @@ def travel_time_curve_legacy(
     """Port of ``MPROCEDI.Calcula_Org_Tmp`` for one direction.
 
     The source uses -1 for a missing observed travel time and -2 as an artificial
-    boundary sentinel.  In the 2008c code the final-sentinel repair tests
-    ``Flag(Qui) = 2`` rather than ``-2``.  ``preserve_sentinel_bug=True`` keeps
-    that behavior; False applies the strongly suggested correction.
+    boundary sentinel. In the 2008c code the final-sentinel repair tests
+    ``Flag(Qui) = 2`` rather than ``-2``. This has two observable consequences:
+    a trailing missing value is not repaired, and a legitimate final travel time
+    of exactly 2 minutes is overwritten by the preceding value.
+    ``preserve_sentinel_bug=True`` reproduces both effects; False applies the
+    strongly suggested ``-2`` correction.
     """
     if not trips:
         raise ValueError("at least one observed trip is required")
