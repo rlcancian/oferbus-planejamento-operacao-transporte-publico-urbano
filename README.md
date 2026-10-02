@@ -6,14 +6,14 @@ Rematerialização moderna do **OferBus**, sistema histórico de planejamento op
 
 A arqueologia do sistema legado foi consolidada, o núcleo computacional de referência possui caracterização executável, o modelo moderno de persistência PostgreSQL foi formalizado e a arquitetura alvo do OferBus 2026 foi aceita.
 
-A implementação está na **Phase A — Platform Skeleton**:
+A implementação de repositório da **Phase A — Platform Foundation** está completa:
 
 - **A.1 — Platform Skeleton:** concluída;
 - **A.2 — Persistence Baseline:** concluída;
 - **A.3 — Identity and Tenancy Boundary:** concluída;
 - **A.4 — Asynchronous Computation Boundary:** concluída;
 - **A.5 — AI and Tool Boundary:** concluída;
-- **A.6 — Quality Gate and Local Startup:** próxima.
+- **A.6 — Quality Gate and Local Startup:** implementada; aceitação no notebook de desenvolvimento é o próximo passo.
 
 ## Arquitetura aceita
 
@@ -36,7 +36,30 @@ A autenticação possui fronteira substituível; o desenvolvimento usa um adapta
 
 A fronteira de IA já existe em `packages/oferbus-ai`. Nenhum LLM tem acesso direto a SQL. O provider ainda está deliberadamente `unconfigured`; ferramentas disponíveis são allow-listed, herdam as permissões do usuário e ações de cálculo/mutação exigem confirmação na baseline atual.
 
-A API expõe `/health`, `/ready`, `/identity/me`, `/computations` e `/ai`. A landing Next.js consulta `/ready` e indica visualmente quando PostgreSQL e migrations estão ativos.
+A API expõe `/health`, `/ready`, `/identity/me`, `/computations` e `/ai`. A landing Next.js consulta `/ready` e `/ai/status` e mostra visualmente o estado da fundação.
+
+## Primeira execução local
+
+Depois de atualizar o branch `main`:
+
+```bash
+make bootstrap
+make postgres-up   # opcional: use seu PostgreSQL nativo em vez disso
+make migrate
+make seed
+make doctor
+make dev
+```
+
+Abra `http://127.0.0.1:3010`.
+
+Em outro terminal, com os serviços ativos:
+
+```bash
+make smoke
+```
+
+O runbook completo está em `docs/architecture/OferBus_Phase_A6_Quality_Gate_and_Local_Startup_v0.1.md`.
 
 ## Estrutura
 
@@ -50,6 +73,7 @@ A API expõe `/health`, `/ready`, `/identity/me`, `/computations` e `/ai`. A lan
 - `reference-core/` — implementação arqueológica executável e testes de caracterização;
 - `migrations/` — migrations Alembic;
 - `infra/dev/` — infraestrutura local opcional;
+- `scripts/` — bootstrap, seed, smoke e diagnóstico local;
 - `docs/` — arqueologia, domínio, computação, persistência, decisões e arquitetura.
 
 ## Princípios
