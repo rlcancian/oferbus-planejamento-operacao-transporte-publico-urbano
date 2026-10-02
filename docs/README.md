@@ -13,7 +13,8 @@ Para entender o estado atual, leia nesta ordem:
 5. `architecture/OferBus_Identity_and_Tenancy_v0.1.md` — autenticação substituível, tenancy explícita e autorização;
 6. `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md` — fila, worker, retries, idempotência e progresso;
 7. `decisions/ADR-0005-ai-provider-and-tool-boundary.md` — fronteira provider-neutral do Copilot e ferramentas estruturadas;
-8. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
+8. `architecture/OferBus_Phase_A6_Quality_Gate_and_Local_Startup_v0.1.md` — bootstrap, quality gates e primeira execução no navegador;
+9. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
 
 ## Estado da materialização
 
@@ -22,7 +23,7 @@ Para entender o estado atual, leia nesta ordem:
 - **Phase A.3 — Identity and Tenancy Boundary:** concluída;
 - **Phase A.4 — Asynchronous Computation Boundary:** concluída;
 - **Phase A.5 — AI and Tool Boundary:** concluída;
-- **Phase A.6 — Quality Gate and Local Startup:** próxima.
+- **Phase A.6 — Quality Gate and Local Startup:** implementada; aceitação no notebook de desenvolvimento pendente.
 
 ## Arqueologia
 
@@ -61,6 +62,7 @@ Para entender o estado atual, leia nesta ordem:
 - `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md`
 - `architecture/OferBus_Identity_and_Tenancy_v0.1.md`
 - `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md`
+- `architecture/OferBus_Phase_A6_Quality_Gate_and_Local_Startup_v0.1.md`
 
 ## Persistência e execução moderna
 
@@ -69,7 +71,9 @@ Para entender o estado atual, leia nesta ordem:
 - `../packages/oferbus-db/` — modelos SQLAlchemy da baseline física;
 - `../packages/oferbus-jobs/` — contrato de fila e implementação PostgreSQL inicial;
 - `../packages/oferbus-ai/` — contrato provider-neutral e ferramentas estruturadas do Copilot;
-- `../migrations/` — migrations Alembic; a baseline atual termina em `0003_async_computation`.
+- `../migrations/` — migrations Alembic; a baseline atual termina em `0003_async_computation`;
+- `../scripts/` — bootstrap, seed, diagnóstico e integrated smoke locais;
+- `../.github/workflows/ci.yml` — quality gates automatizados.
 
 PostgreSQL é a fonte de verdade. Arquivos nativos históricos são apenas fontes arqueológicas e, quando útil, entradas para migração única.
 
