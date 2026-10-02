@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-oferbus}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oferbus_local_dev}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - oferbus-postgres-data:/var/lib/postgresql/data
     healthcheck:
