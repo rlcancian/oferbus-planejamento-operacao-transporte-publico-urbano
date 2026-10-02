@@ -1,6 +1,6 @@
 # OferBus — Phase B Core Planning Vertical Slice Plan v0.1
 
-**Status:** EM ANDAMENTO  
+**Status:** CONCLUÍDA  
 **Date:** 2026-10-02
 
 ## Goal
@@ -40,7 +40,7 @@ The bridge currently exercises minimum timetable → operational trip attributes
 
 For `legacy-exact`, the bridge preserves characterized historical behavior supported by the reference harness. For `normalized`, it currently applies explicit characterized corrections for return-passenger replay, express-trip occupancy semantics and direction-weighted distance metrics.
 
-The adapter is a controlled bridge, not a declaration that the archaeological package is production code. Individual algorithms are promoted behind the same contracts in later subphases.
+The adapter is a controlled bridge, not a declaration that the archaeological package is production code. Individual algorithms are promoted behind the same contracts in later phases.
 
 ## B.2 — planning input persistence and application boundary — CONCLUÍDA
 
@@ -123,21 +123,32 @@ The block view is deliberately a precise read-only preparation for the Phase C M
 
 Detailed design: `architecture/OferBus_Phase_B5_Web_Planning_Result_Workspace_v0.1.md`.
 
-## B.6 — integrated acceptance and regression gate — PRÓXIMA
+## B.6 — integrated acceptance and regression gate — CONCLUÍDA
 
-Add a reproducible fixture and CI/browser path proving:
+Materialized:
+
+- repeatable integration smoke with a fresh idempotency key per execution;
+- stable context assertions based on deterministic entity identifiers rather than mutable seed display labels;
+- normalized golden-master regression for the promoted Phase B fixture;
+- pinned input/output fingerprints and characterized trip/fleet/passenger/distance/cost outputs;
+- CI integration job that builds and starts Next.js in production mode after real planning execution;
+- `scripts/web_acceptance.py` validating the rendered workspace against stable operational semantics;
+- explicit rejection of empty/error workspace states during CI acceptance;
+- local notebook acceptance with PostgreSQL 18, API, worker, repeatable smoke and browser inspection of the computed workspace.
+
+The CI path now proves:
 
 ```text
-seed/import input
-→ create scenario revision
+seed input
+→ immutable scenario revision
 → submit core-planning
 → worker succeeds
 → result lineage persists
-→ API returns exact result
-→ web renders the result
+→ API reconstructs exact result
+→ production Next.js renders the result
 ```
 
-Acceptance also requires regression comparison between the production contract and the characterized reference fixture for every promoted model used by the slice.
+Detailed design: `architecture/OferBus_Phase_B6_Integrated_Acceptance_and_Regression_v0.1.md`.
 
 ## Guardrails
 
@@ -148,7 +159,10 @@ Acceptance also requires regression comparison between the production contract a
 - The computational core must remain independent of PostgreSQL, FastAPI and React.
 - AI may explain/orchestrate the workflow later, but deterministic core code remains authoritative for calculations.
 - No planning-domain capability may be advertised in the Copilot before the corresponding deterministic command is implemented.
+- A golden-master change requires an explicit semantic/model explanation; it must not be updated merely to make CI green.
 
-## Phase B exit criteria
+## Phase B exit criteria — ATENDIDOS
 
-Phase B is complete when a planner can create or load one line study, submit an immutable scenario revision, run deterministic planning asynchronously, inspect a persisted timetable/fleet/occupancy/metrics result in the browser, and reproduce the run from exact inputs and engine metadata.
+Phase B is complete: a planner can create/load a one-line study, submit an immutable scenario revision, run deterministic planning asynchronously, persist the resulting timetable/fleet/occupancy/metrics lineage, inspect it in the browser, and reproduce/verify the run from exact inputs, engine metadata and fingerprints.
+
+The next architecture phase is **Phase C — March Diagram and Versioned Operational Editing**. Any Phase C edit must derive a new `PlanRevision` rather than mutate the immutable computed plan in place.
