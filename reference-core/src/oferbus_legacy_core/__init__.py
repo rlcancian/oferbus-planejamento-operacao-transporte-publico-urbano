@@ -31,6 +31,7 @@ from .operations import (
     build_basic_link_graph_legacy,
     vehicle_blocks,
 )
+from .trip_attributes import ExpressTravelParameters, complete_trip_attributes_legacy
 from .service_level import (
     service_level_label_legacy,
     stored_service_level_legacy,
@@ -53,5 +54,5 @@ __all__ = [
     "link_garages_legacy", "allocate_fleet_legacy", "build_basic_link_graph_legacy",
     "vehicle_blocks", "service_level_label_legacy", "stored_service_level_legacy",
     "passengers_in_period_legacy", "previous_normal_departure_legacy",
-    "assign_service_levels_legacy",
+    "assign_service_levels_legacy", "ExpressTravelParameters", "complete_trip_attributes_legacy",
 ]
