@@ -83,6 +83,7 @@ export type LatestResultLoad = {
   readiness: Readiness | null;
   result: PersistedPlanningResult | null;
   resultStatus: "available" | "empty" | "unavailable";
+  resultError: string | null;
 };
 
 const DEVELOPMENT_ORGANIZATION_ID = "d0568fff-011a-55a6-9083-321a787ad79d";
@@ -114,20 +115,43 @@ async function loadReadiness(): Promise<Readiness | null> {
   }
 }
 
-async function loadLatestResult(): Promise<Pick<LatestResultLoad, "result" | "resultStatus">> {
+async function responseError(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    if (typeof body.detail === "string") return `HTTP ${response.status} — ${body.detail}`;
+  } catch {
+    // Fall through to the status text when the response is not JSON.
+  }
+  return `HTTP ${response.status}${response.statusText ? ` — ${response.statusText}` : ""}`;
+}
+
+async function loadLatestResult(): Promise<Pick<LatestResultLoad, "result" | "resultStatus" | "resultError">> {
   try {
     const response = await fetch(`${apiBase()}/results/latest`, {
       cache: "no-store",
       headers: resultHeaders(),
     });
-    if (response.status === 404) return { result: null, resultStatus: "empty" };
-    if (!response.ok) return { result: null, resultStatus: "unavailable" };
+    if (response.status === 404) {
+      return { result: null, resultStatus: "empty", resultError: null };
+    }
+    if (!response.ok) {
+      return {
+        result: null,
+        resultStatus: "unavailable",
+        resultError: await responseError(response),
+      };
+    }
     return {
       result: (await response.json()) as PersistedPlanningResult,
       resultStatus: "available",
+      resultError: null,
     };
-  } catch {
-    return { result: null, resultStatus: "unavailable" };
+  } catch (error) {
+    return {
+      result: null,
+      resultStatus: "unavailable",
+      resultError: error instanceof Error ? error.message : "Falha de conexão com a API de resultados",
+    };
   }
 }
 
