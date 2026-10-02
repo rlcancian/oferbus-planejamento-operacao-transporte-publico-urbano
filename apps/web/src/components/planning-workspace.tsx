@@ -1,4 +1,5 @@
-import type { PersistedPlanningResult, Readiness } from "../lib/oferbus-api";
+import type { MarchPlan, PersistedPlanningResult, Readiness } from "../lib/oferbus-api";
+import { MarchDiagram } from "./march-diagram";
 
 const numberFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 const integerFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
@@ -50,9 +51,13 @@ function lineLabel(result: PersistedPlanningResult): string {
 export function PlanningWorkspace({
   result,
   readiness,
+  march,
+  marchError,
 }: {
   result: PersistedPlanningResult;
   readiness: Readiness | null;
+  march: MarchPlan | null;
+  marchError: string | null;
 }) {
   const metrics = result.metrics;
 
@@ -67,6 +72,7 @@ export function PlanningWorkspace({
           </div>
         </div>
         <nav className="topnav" aria-label="Seções do workspace">
+          <a href="#marcha">Marcha</a>
           <a href="#quadro">Horários</a>
           <a href="#blocos">Blocos</a>
           <a href="#indicadores">Indicadores</a>
@@ -132,6 +138,22 @@ export function PlanningWorkspace({
       </section>
 
       <div className="workspace-grid">
+        {march ? (
+          <MarchDiagram plan={march} />
+        ) : (
+          <section className="panel provenance-panel" id="marcha">
+            <div className="panel-heading">
+              <div>
+                <span className="section-kicker">Engenharia operacional</span>
+                <h2>Gráfico de Marcha indisponível</h2>
+              </div>
+            </div>
+            <div className="provenance-notes">
+              <p>{marchError ?? "O read model do Gráfico de Marcha não pôde ser carregado."}</p>
+            </div>
+          </section>
+        )}
+
         <section className="panel timetable-panel" id="quadro">
           <div className="panel-heading">
             <div>
@@ -218,10 +240,6 @@ export function PlanningWorkspace({
                 </article>
               );
             })}
-          </div>
-          <div className="march-preview-note">
-            <span aria-hidden="true">↗</span>
-            <p><strong>Gráfico de Marcha</strong> A estrutura de viagens e vínculos já está pronta para a superfície gráfica interativa da Phase C.</p>
           </div>
         </section>
 
