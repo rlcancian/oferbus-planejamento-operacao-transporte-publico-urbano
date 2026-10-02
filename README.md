@@ -13,8 +13,8 @@ A **Phase B — Core Planning Vertical Slice** está em andamento:
 - **B.1 — Production Planning Contracts and Reference Bridge:** concluída;
 - **B.2 — Planning Input Persistence and Application Boundary:** concluída;
 - **B.3 — Deterministic Planning Worker:** concluída;
-- **B.4 — Plan and Result Persistence:** próxima;
-- **B.5 — Web Planning Result Workspace:** pendente;
+- **B.4 — Plan and Result Persistence:** concluída;
+- **B.5 — Web Planning Result Workspace:** próxima;
 - **B.6 — Integrated Acceptance and Regression Gate:** pendente.
 
 ## Arquitetura aceita
@@ -30,39 +30,42 @@ A **Phase B — Core Planning Vertical Slice** está em andamento:
 - OferBus Copilot/Planning Agent como componente nativo, provider-neutral e sempre operando por ferramentas estruturadas, permissões e confirmações;
 - monólito modular, não microserviços prematuros.
 
-## Núcleo computacional e inputs de planejamento
+## Vertical slice de planejamento
 
-`packages/oferbus-core` contém os primeiros contratos estáveis de planejamento: entradas/saídas tipadas, unidades operacionais explícitas, semantic layers, validação e fingerprints determinísticos.
+`packages/oferbus-core` contém contratos tipados, semantic layers, validação e fingerprints determinísticos. A ponte `ReferencePlanningAdapter` executa apenas rotinas arqueológicas já caracterizadas sob esse contrato de produção.
 
-A B.1 introduziu `ReferencePlanningAdapter`, uma ponte temporária e explicitamente rastreável sobre rotinas já caracterizadas de `reference-core`. O encadeamento coberto atualmente é:
+A B.2 introduziu `packages/oferbus-planning` e a migration `0004_planning_inputs`, persistindo datasets observados e snapshots imutáveis de `ScenarioRevision`. Toda leitura recalcula o SHA-256 canônico do `PlanningInput`.
+
+A B.3 conectou esses snapshots à execução assíncrona real por `run_kind=core-planning`. O worker valida semantic layer, input fingerprint e engine antes de executar o core; `ComputationRun` registra input/output fingerprints e provenance.
+
+A B.4 introduziu a migration `0005_planning_results` e tornou o resultado operacional autoritativo no PostgreSQL:
 
 ```text
-minimum timetable
-→ operational trip attributes
-→ basic link graph
-→ vehicle blocks / effective fleet
-→ service level
-→ occupancy
-→ operating and cost metrics
+ScenarioRevision
+→ ComputationRun
+→ PlanRevision
+→ PlannedTrip
+→ VehicleBlock / VehicleBlockTrip
+→ ResultSnapshot
 ```
 
-A B.2 introduziu `packages/oferbus-planning`, a fronteira compartilhada de aplicação entre API e worker. A migration `0004_planning_inputs` persiste datasets observados com revisões imutáveis, observações por sentido e snapshots completos de `ScenarioRevision` com curvas, parâmetros, veículo, custos, semantic layer e fingerprint.
+`PlanRevision` é separado de `ResultSnapshot` para permitir futuras revisões manuais sem sobrescrever o histórico computado. A ordem das viagens nos blocos é relacional, preparando a Phase C e o Gráfico de Marcha. O resultado persistido é reconstruído pelo `packages/oferbus-planning` e só é aceito se reproduzir exatamente o `output_fingerprint` calculado pelo `oferbus-core`.
 
-A leitura de um snapshot recalcula o SHA-256 canônico do `PlanningInput`; divergências entre o estado persistido e o fingerprint da revisão são rejeitadas.
+A API `0.8.0` expõe o resultado verificado em:
 
-A B.3 conectou essa revisão imutável à execução assíncrona real. `run_kind=core-planning` deriva semantic layer, fingerprint e engine da revisão persistida, verifica novamente essas invariantes no worker e executa o `oferbus-core`. `ComputationRun` passa a registrar `input_fingerprint` e `output_fingerprint`, além de um resumo diagnóstico de provenance. Resultados operacionais detalhados permanecem para a B.4.
-
-A idempotência também foi endurecida: uma mesma chave não pode apontar silenciosamente para cenário, engine, fingerprint ou payload diferente.
+```text
+GET /results/computations/{run_id}
+```
 
 `legacy-exact` e `normalized` são distinguidos explicitamente. `modern` permanece indisponível até existir um modelo moderno real; a plataforma não simula capacidades ainda não implementadas.
 
 ## Fundação multiusuário e Copilot
 
-A baseline física inclui organizações/usuários, memberships, municípios/operadores/terminais, linhas/sentidos, projetos, cenários/revisões, `ComputationRun`, auditoria, metadados de execução assíncrona e inputs de planejamento versionados. As relações tenant-owned críticas usam foreign keys compostas com `organization_id` para impedir referências cruzadas entre organizações no próprio banco.
+A persistência inclui organizações/usuários, memberships, municípios/operadores/terminais, linhas/sentidos, projetos, cenários/revisões, `ComputationRun`, auditoria, fila, inputs versionados e resultados operacionais imutáveis. Relações tenant-owned críticas usam foreign keys compostas com `organization_id`.
 
 A autenticação possui fronteira substituível; o desenvolvimento usa um adaptador local explicitamente proibido em produção. A aplicação resolve uma organização ativa e aplica RBAC (`owner`, `admin`, `planner`, `viewer`).
 
-A fronteira de IA existe em `packages/oferbus-ai`. Nenhum LLM tem acesso direto a SQL. O provider ainda está deliberadamente `unconfigured`; ferramentas disponíveis são allow-listed, herdam as permissões do usuário e ações de cálculo/mutação exigem confirmação na baseline atual. O cálculo `core-planning` já existe de forma determinística, mas ainda não foi exposto como ferramenta do Copilot nesta fase.
+A fronteira de IA existe em `packages/oferbus-ai`. Nenhum LLM tem acesso direto a SQL. O provider ainda está deliberadamente `unconfigured`; ferramentas disponíveis são allow-listed, herdam as permissões do usuário e ações de cálculo/mutação exigem confirmação. O cálculo `core-planning` existe de forma determinística, mas ainda não foi exposto como ferramenta do Copilot.
 
 ## Execução local
 
@@ -85,7 +88,7 @@ Em outro terminal, com os serviços ativos:
 make smoke
 ```
 
-O smoke integrado agora inclui também uma execução `core-planning` real sobre a fixture determinística da Phase B.
+O smoke integrado inclui planejamento real, persistência relacional e reconstrução do resultado pelo mesmo output fingerprint.
 
 ## Estrutura
 
@@ -95,8 +98,8 @@ O smoke integrado agora inclui também uma execução `core-planning` real sobre
 - `packages/oferbus-ai/` — contratos de provider LLM e ferramentas estruturadas do Copilot;
 - `packages/oferbus-core/` — contratos e motor computacional de produção;
 - `packages/oferbus-db/` — persistência SQLAlchemy/PostgreSQL;
-- `packages/oferbus-jobs/` — contrato e implementação inicial da fila assíncrona;
-- `packages/oferbus-planning/` — fronteira compartilhada de aplicação para inputs e revisões de planejamento;
+- `packages/oferbus-jobs/` — contrato e implementação da fila assíncrona;
+- `packages/oferbus-planning/` — fronteira de aplicação para inputs e resultados de planejamento;
 - `reference-core/` — implementação arqueológica executável e testes de caracterização;
 - `migrations/` — migrations Alembic;
 - `infra/dev/` — infraestrutura local opcional;
