@@ -35,5 +35,5 @@ web-typecheck:
 web-build:
 	npm run web:build
 
-smoke:
+smoke: doctor
 	set -a; source .env; set +a; source .venv/bin/activate; python scripts/integration_smoke.py --api-url "$${OFERBUS_API_URL:-http://127.0.0.1:8010}"
