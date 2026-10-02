@@ -21,22 +21,28 @@ line + observed trips + planning specification
 
 Phase B does not attempt to port every legacy routine at once. It promotes characterized behavior in controlled increments, keeping `reference-core` as archaeological evidence and making every production contract explicit about units, semantic layer and provenance.
 
-## B.1 — production planning contracts and reference bridge — EM ANDAMENTO
+## B.1 — production planning contracts and reference bridge — CONCLUÍDA
 
-Materialize the first real `oferbus-core` Python package with:
+Materialized:
 
+- first installable `packages/oferbus-core` production package;
 - stable typed planning input/output contracts;
 - explicit service-minute, passenger, kilometre and cost units in field names/documentation;
 - semantic layer selection (`legacy-exact`, `normalized`, `modern`);
-- deterministic canonical input/output fingerprints;
-- validation of direction curves, observation windows, capacities and vehicle parameters;
-- an explicitly temporary `ReferencePlanningAdapter` that executes only characterized `reference-core` routines;
-- no database, HTTP or worker dependency inside the core;
-- parity tests against an existing reference end-to-end fixture.
+- deterministic canonical SHA-256 input/output fingerprints;
+- validation of direction curves, observation windows, capacities, vehicle parameters and costs;
+- explicitly temporary `ReferencePlanningAdapter` executing only characterized `reference-core` routines;
+- production boundary remains independent of database, HTTP, worker and UI;
+- parity tests against the existing single-direction end-to-end reference fixture;
+- CI and local bootstrap include `oferbus-core`.
+
+The bridge currently exercises minimum timetable → operational trip attributes → basic link graph → vehicle blocks/effective fleet → service levels → occupancy → metrics/cost. `modern` deliberately remains unavailable rather than being faked.
+
+For `legacy-exact`, the bridge preserves characterized historical behavior supported by the reference harness. For `normalized`, it currently applies explicit characterized corrections for return-passenger replay, express-trip occupancy semantics and direction-weighted distance metrics.
 
 The adapter is a controlled bridge, not a declaration that the archaeological package is production code. Individual algorithms are promoted behind the same contracts in later subphases.
 
-## B.2 — planning input persistence and application boundary — PENDENTE
+## B.2 — planning input persistence and application boundary — PRÓXIMA
 
 Materialize the smallest PostgreSQL/API model required to create a real planning revision:
 
