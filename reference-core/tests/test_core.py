@@ -35,8 +35,8 @@ def test_capacity_bug_is_explicitly_preserved_and_corrected_variant_differs():
 
 
 def test_fleet_reserve_uses_legacy_gt_half_rounding():
-    assert fleet_reserve_legacy(10, 25) == 2  # 2.5 stays 2
-    assert fleet_reserve_legacy(11, 25) == 3  # 2.75 -> 3
+    assert fleet_reserve_legacy(10, 25) == 2
+    assert fleet_reserve_legacy(11, 25) == 3
 
 
 def test_robust_maximum_suppresses_single_point_spike():
@@ -50,7 +50,6 @@ def test_robust_maximum_suppresses_single_point_spike():
 def test_mass_correction_preserves_requested_total_with_legacy_first_point_convention():
     c = [0.0] + [1.0] * 20 + [0.0]
     fixed = correct_adjusted_curve_legacy(c, original_sum=100.0, first_point=10)
-    # Legacy correction targets first_point + sum(points 2..N), while then replacing point 1.
     assert 10 + sum(fixed[2:-1]) == pytest.approx(100.0)
     assert fixed[1] == pytest.approx(fixed[2])
 
@@ -65,8 +64,8 @@ def test_virtual_times_use_load_ir_and_strict_half_rounding():
     arr = virtual_arrival_legacy(real_departure=60, start=60, end=60, demand_curve=demand, ir_curve=ir,
                                  travel_time_curve=tt, maximum=100.0, project_capacity=50.0,
                                  valley_capacity=30.0, alighting_seconds=2.0)
-    assert dep == 56  # load=100; 250 sec -> 4.166 min
-    assert arr == 93  # 200 sec -> 3.333 min + 30
+    assert dep == 56
+    assert arr == 93
 
 
 def test_forecast_prefers_parabola_for_exact_quadratic_annual_means():
@@ -118,7 +117,6 @@ def test_variable_renewal_index_from_passengers_and_critical_section():
 
 
 def test_mptdc_code_and_manual_are_versioned_as_distinct_semantics():
-    # Long enough to permit crossings more than 30 minutes apart.
     raw = [0.0]
     raw += [2.0] * 40 + [10.0] * 40 + [2.0] * 40 + [0.0]
     code = typical_periods_code_2008(raw, period_adjustment=2)
@@ -163,3 +161,85 @@ def test_minimum_timetable_max_interval_binds_before_capacity():
     )
     trips = minimum_timetable_2007_legacy({1: d}, cfg)
     assert [t.real_departure for t in trips][:4] == [60, 75, 90, 105]
+
+
+def _op(direction, dep, arr, *, trip_type=0):
+    return OperationalTrip(direction, dep, dep, arr, arr, trip_type=trip_type)
+
+
+def test_legacy_link_encoding_has_explicit_entry_and_exit_semantics():
+    assert encode_legacy_links(LinkKind.TRIP, LinkKind.STORAGE) == 11
+    assert decode_legacy_links(11) == (LinkKind.TRIP, LinkKind.STORAGE)
+    assert encode_legacy_links(LinkKind.STORAGE, LinkKind.TRIP) == 14
+
+
+def test_clear_links_preserves_manual_entry_and_exit_bits():
+    t = _op(1, 60, 80, trip_type=16 | 32)
+    t.entry_link = LinkKind.TRIP
+    t.exit_link = LinkKind.STORAGE
+    t.vehicle = 7
+    clear_non_manual_links([t])
+    assert t.entry_link == LinkKind.TRIP
+    assert t.exit_link == LinkKind.STORAGE
+    assert t.vehicle == 0
+
+
+def test_direct_link_prefers_later_arrival_for_same_future_departure():
+    trips = [_op(1, 60, 80), _op(1, 70, 90), _op(2, 100, 120)]
+    created = link_direct_trips_legacy(trips, radial=True)
+    assert created == 1
+    assert trips[0].exit_link == LinkKind.NONE
+    assert trips[1].exit_link == LinkKind.TRIP
+    assert trips[2].entry_link == LinkKind.TRIP
+
+
+def test_storage_and_garage_complete_unresolved_links():
+    trips = [_op(1, 60, 80), _op(2, 100, 120)]
+    assert link_storage_legacy(trips, radial=True) == 1
+    link_garages_legacy(trips)
+    assert trips[0].entry_link == LinkKind.GARAGE
+    assert trips[0].exit_link == LinkKind.STORAGE
+    assert trips[1].entry_link == LinkKind.STORAGE
+    assert trips[1].exit_link == LinkKind.GARAGE
+
+
+def test_fleet_allocation_follows_matching_link_chain():
+    trips = [
+        _op(1, 60, 80),
+        _op(2, 90, 110),
+        _op(1, 120, 140),
+        _op(1, 65, 85),
+    ]
+    trips.sort(key=lambda t: t.virtual_departure)
+    first = trips[0]
+    independent = trips[1]
+    second = trips[2]
+    third = trips[3]
+    first.entry_link = LinkKind.GARAGE
+    first.exit_link = LinkKind.TRIP
+    second.entry_link = LinkKind.TRIP
+    second.exit_link = LinkKind.TRIP
+    third.entry_link = LinkKind.TRIP
+    third.exit_link = LinkKind.GARAGE
+    independent.entry_link = LinkKind.GARAGE
+    independent.exit_link = LinkKind.GARAGE
+    fleet = allocate_fleet_legacy(trips, radial=True)
+    assert fleet == 2
+    assert first.vehicle == second.vehicle == third.vehicle
+    assert independent.vehicle != first.vehicle
+
+
+def test_basic_link_graph_yields_vehicle_blocks_and_fleet():
+    trips = [
+        _op(1, 60, 80),
+        _op(2, 90, 110),
+        _op(1, 120, 140),
+        _op(2, 150, 170),
+    ]
+    fleet = build_basic_link_graph_legacy(trips, radial=True)
+    blocks = vehicle_blocks(trips)
+    assert fleet == 1
+    assert list(blocks) == [1]
+    assert len(blocks[1]) == 4
+    assert trips[0].entry_link == LinkKind.GARAGE
+    assert trips[-1].exit_link == LinkKind.GARAGE
