@@ -11,20 +11,22 @@ Para entender o estado atual, leia nesta ordem:
 3. `architecture/OferBus_Phase_A_Platform_Skeleton_Plan_v0.1.md` — plano e estado da Phase A;
 4. `architecture/OferBus_Phase_B_Core_Planning_Vertical_Slice_Plan_v0.1.md` — plano e estado da primeira fatia funcional de planejamento;
 5. `architecture/OferBus_Phase_B2_Planning_Input_Persistence_v0.1.md` — persistência de datasets observados e snapshots imutáveis de planejamento;
-6. `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md` — baseline PostgreSQL física;
-7. `architecture/OferBus_Identity_and_Tenancy_v0.1.md` — autenticação substituível, tenancy explícita e autorização;
-8. `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md` — fila, worker, retries, idempotência e progresso;
-9. `decisions/ADR-0005-ai-provider-and-tool-boundary.md` — fronteira provider-neutral do Copilot e ferramentas estruturadas;
-10. `architecture/OferBus_Phase_A6_Quality_Gate_and_Local_Startup_v0.1.md` — bootstrap, quality gates e primeira execução no navegador;
-11. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
+6. `architecture/OferBus_Phase_B3_Deterministic_Planning_Worker_v0.1.md` — execução assíncrona determinística, fingerprints e provenance;
+7. `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md` — baseline PostgreSQL física;
+8. `architecture/OferBus_Identity_and_Tenancy_v0.1.md` — autenticação substituível, tenancy explícita e autorização;
+9. `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md` — fila, worker, retries, idempotência e progresso;
+10. `decisions/ADR-0005-ai-provider-and-tool-boundary.md` — fronteira provider-neutral do Copilot e ferramentas estruturadas;
+11. `architecture/OferBus_Phase_A6_Quality_Gate_and_Local_Startup_v0.1.md` — bootstrap, quality gates e primeira execução no navegador;
+12. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
 
 ## Estado da materialização
 
 - **Phase A.1–A.6 — Platform Foundation:** concluída e validada localmente;
 - **Phase B.1 — Production Planning Contracts and Reference Bridge:** concluída;
 - **Phase B.2 — Planning Input Persistence and Application Boundary:** concluída;
-- **Phase B.3 — Deterministic Planning Worker:** próxima;
-- **Phase B.4–B.6:** pendentes.
+- **Phase B.3 — Deterministic Planning Worker:** concluída;
+- **Phase B.4 — Plan and Result Persistence:** próxima;
+- **Phase B.5–B.6:** pendentes.
 
 ## Arqueologia
 
@@ -62,6 +64,7 @@ Para entender o estado atual, leia nesta ordem:
 - `architecture/OferBus_Phase_A_Platform_Skeleton_Plan_v0.1.md`
 - `architecture/OferBus_Phase_B_Core_Planning_Vertical_Slice_Plan_v0.1.md`
 - `architecture/OferBus_Phase_B2_Planning_Input_Persistence_v0.1.md`
+- `architecture/OferBus_Phase_B3_Deterministic_Planning_Worker_v0.1.md`
 - `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md`
 - `architecture/OferBus_Identity_and_Tenancy_v0.1.md`
 - `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md`
@@ -74,10 +77,11 @@ Para entender o estado atual, leia nesta ordem:
 - `../packages/oferbus-core/` — contratos de produção, validação, fingerprints e ponte de referência da B.1;
 - `../packages/oferbus-db/` — modelos SQLAlchemy da persistência física, incluindo inputs da B.2;
 - `../packages/oferbus-planning/` — fronteira compartilhada de aplicação para datasets e `ScenarioRevision` de planejamento;
-- `../packages/oferbus-jobs/` — contrato de fila e implementação PostgreSQL inicial;
+- `../packages/oferbus-jobs/` — fila PostgreSQL, leases/retries, fingerprints de execução e idempotência estrita;
+- `../apps/worker/` — handlers `platform-smoke` e `core-planning`;
 - `../packages/oferbus-ai/` — contrato provider-neutral e ferramentas estruturadas do Copilot;
 - `../migrations/` — migrations Alembic; a baseline atual termina em `0004_planning_inputs`;
-- `../scripts/` — bootstrap, seed, diagnóstico e integrated smoke locais;
+- `../scripts/` — bootstrap, seed, diagnóstico e integrated smoke, incluindo execução real de `core-planning`;
 - `../.github/workflows/ci.yml` — quality gates automatizados.
 
 PostgreSQL é a fonte de verdade. Arquivos nativos históricos são apenas fontes arqueológicas e, quando útil, entradas para migração única.
