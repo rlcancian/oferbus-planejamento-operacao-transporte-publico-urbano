@@ -1,6 +1,6 @@
 # OferBus — Phase A Platform Skeleton Plan v0.1
 
-**Status:** active implementation plan  
+**Status:** implementation complete; workstation acceptance pending  
 **Date:** 2026-10-02
 
 ## Goal
@@ -61,12 +61,33 @@ Materialized:
 
 No planning-domain AI tool is advertised until the corresponding deterministic domain command exists. Provider integration, conversational orchestration and RAG are intentionally later concerns built on this boundary.
 
-## Phase A.6 — quality gate and local startup — PENDENTE
+## Phase A.6 — quality gate and local startup — IMPLEMENTADA; ACEITAÇÃO LOCAL PENDENTE
 
-CI for web/API/reference-core/persistence/jobs/worker/AI boundary, lint/type checking/test commands, dependency/security checks, reproducible local startup documentation/scripts and verified browser startup workflow.
+Materialized:
 
-A.6 must include an integrated smoke path that applies all migrations, seeds a development organization/user/scenario, submits `platform-smoke`, starts a worker and verifies terminal completion. It must also verify `/ai/status` and the authenticated tool catalog without requiring an external LLM provider.
+- `.github/workflows/ci.yml` with independent Python, web and integrated PostgreSQL smoke jobs;
+- fatal-error Python lint gate, compile validation, test suites and dependency audit;
+- TypeScript typecheck, Next.js production build and npm runtime dependency audit;
+- deterministic `scripts/dev_seed.py` fixture for organization/user/project/scenario/revision;
+- `scripts/integration_smoke.py` exercising API → identity → AI tool → `ComputationRun` → PostgreSQL queue → worker → success;
+- `scripts/dev-bootstrap.sh` for Python/Node dependency bootstrap;
+- `scripts/dev-run.sh` for API + worker + web local execution;
+- `scripts/dev-doctor.sh` for workstation diagnostics;
+- root `Makefile` with `bootstrap`, `postgres-up`, `migrate`, `seed`, `doctor`, `dev`, `smoke` and quality commands;
+- `OferBus_Phase_A6_Quality_Gate_and_Local_Startup_v0.1.md` runbook covering Docker and native PostgreSQL paths.
+
+The GitHub Connector commits did not produce a visible GitHub Actions workflow run during this session. Therefore CI execution is not being claimed as PASS yet. The next acceptance action is the explicit workstation run requested by the developer: pull `main`, bootstrap, apply migrations, seed, start OferBus, run the integrated smoke and inspect the browser shell.
 
 ## Exit criteria for Phase A
 
-Phase A is complete only when web, API and PostgreSQL can run together locally; migrations are reproducible; tenant isolation is testable; a computation job can be submitted through the queue abstraction and completed by a worker; the AI/tool boundary is testable without provider credentials; and CI validates the skeleton. No planning-domain completeness is required until Phase B.
+Repository implementation for A.1–A.6 is complete. Phase A acceptance is complete only after the development workstation verifies:
+
+- PostgreSQL is reachable and Alembic reaches `0003_async_computation`;
+- deterministic seed succeeds;
+- `make doctor` passes;
+- API and worker share the durable run state;
+- `make smoke` reaches `succeeded` with 100% progress through the AI tool boundary;
+- the Next.js OferBus shell opens in the browser;
+- local Python tests/typecheck/build are either passing or any environment-specific failure is diagnosed and corrected.
+
+No planning-domain completeness is required until Phase B.
