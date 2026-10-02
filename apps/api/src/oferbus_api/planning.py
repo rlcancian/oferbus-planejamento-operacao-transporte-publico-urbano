@@ -16,6 +16,7 @@ from oferbus_core import (
 )
 from oferbus_planning import (
     CreateObservedDatasetCommand,
+    CreateObservedDatasetRevisionCommand,
     CreateScenarioRevisionCommand,
     DirectionObservationBatch,
     DirectionPlanningSnapshotCommand,
@@ -23,6 +24,7 @@ from oferbus_planning import (
     PlanningInputIntegrityError,
     PlanningInputNotFound,
     create_observed_dataset,
+    create_observed_dataset_revision,
     create_scenario_revision,
     load_planning_input,
 )
@@ -46,6 +48,13 @@ class ObservedDatasetCreateRequest(BaseModel):
     line_id: uuid.UUID
     name: str = Field(min_length=1, max_length=240)
     description: str | None = None
+    source_label: str | None = Field(default=None, max_length=240)
+    source_metadata: dict[str, Any] | None = None
+    directions: list[DatasetDirectionRequest] = Field(min_length=1)
+
+
+class ObservedDatasetRevisionCreateRequest(BaseModel):
+    parent_revision_id: uuid.UUID | None = None
     source_label: str | None = Field(default=None, max_length=240)
     source_metadata: dict[str, Any] | None = None
     directions: list[DatasetDirectionRequest] = Field(min_length=1)
@@ -167,6 +176,24 @@ def _core_input_payload(value) -> dict[str, Any]:
     }
 
 
+def _observation_batches(request_directions: list[DatasetDirectionRequest]) -> tuple[DirectionObservationBatch, ...]:
+    return tuple(
+        DirectionObservationBatch(
+            direction_id=direction.direction_id,
+            observations=tuple(
+                ObservedTripInput(
+                    departure_service_minute=item.departure_service_minute,
+                    passengers=item.passengers,
+                    critical_passengers=item.critical_passengers,
+                    travel_time_min=item.travel_time_min,
+                )
+                for item in direction.observations
+            ),
+        )
+        for direction in request_directions
+    )
+
+
 def _http_error(exc: PlanningInputError) -> HTTPException:
     if isinstance(exc, PlanningInputNotFound):
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
@@ -197,21 +224,34 @@ def create_dataset(
                 description=request.description,
                 source_label=request.source_label,
                 source_metadata=request.source_metadata,
-                directions=tuple(
-                    DirectionObservationBatch(
-                        direction_id=direction.direction_id,
-                        observations=tuple(
-                            ObservedTripInput(
-                                departure_service_minute=item.departure_service_minute,
-                                passengers=item.passengers,
-                                critical_passengers=item.critical_passengers,
-                                travel_time_min=item.travel_time_min,
-                            )
-                            for item in direction.observations
-                        ),
-                    )
-                    for direction in request.directions
-                ),
+                directions=_observation_batches(request.directions),
+            )
+        )
+    except PlanningInputError as exc:
+        raise _http_error(exc) from exc
+    return ObservedDatasetCreateResponse(**created.__dict__)
+
+
+@router.post(
+    "/datasets/{dataset_id}/revisions",
+    response_model=ObservedDatasetCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_dataset_revision(
+    dataset_id: uuid.UUID,
+    request: ObservedDatasetRevisionCreateRequest,
+    principal: Principal = Depends(require_permission(Permission.PROJECT_WRITE)),
+) -> ObservedDatasetCreateResponse:
+    try:
+        created = create_observed_dataset_revision(
+            CreateObservedDatasetRevisionCommand(
+                organization_id=principal.organization_id,
+                created_by=principal.user_id,
+                dataset_id=dataset_id,
+                parent_revision_id=request.parent_revision_id,
+                source_label=request.source_label,
+                source_metadata=request.source_metadata,
+                directions=_observation_batches(request.directions),
             )
         )
     except PlanningInputError as exc:
