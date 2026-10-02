@@ -3,7 +3,7 @@ import { loadPlanningWorkspace } from "../lib/oferbus-api";
 
 export const dynamic = "force-dynamic";
 
-function EmptyWorkspace({ unavailable }: { unavailable: boolean }) {
+function EmptyWorkspace({ unavailable, error }: { unavailable: boolean; error: string | null }) {
   return (
     <main className="workspace-shell empty-workspace">
       <header className="topbar">
@@ -26,9 +26,10 @@ function EmptyWorkspace({ unavailable }: { unavailable: boolean }) {
         <h1>{unavailable ? "O resultado ainda não pode ser carregado." : "Ainda não há um plano calculado."}</h1>
         <p>
           {unavailable
-            ? "O frontend está operacional, mas a API autenticada de resultados não respondeu. Em desenvolvimento, confirme que make dev está ativo e que o contexto seed foi criado."
+            ? "O frontend está operacional, mas a API autenticada de resultados não respondeu corretamente. O diagnóstico abaixo mostra a resposta concreta recebida pelo workspace."
             : "Execute uma computação core-planning para materializar a primeira revisão. O workspace aparecerá automaticamente com horários, blocos, frota, indicadores e provenance."}
         </p>
+        {unavailable && error ? <code className="workspace-error-detail">{error}</code> : null}
         <div className="empty-flow" aria-label="Fluxo para gerar o primeiro resultado">
           <span>ScenarioRevision</span><i>→</i><span>core-planning</span><i>→</i><span>PlanRevision</span><i>→</i><span>Workspace</span>
         </div>
@@ -41,7 +42,12 @@ export default async function Home() {
   const workspace = await loadPlanningWorkspace();
 
   if (!workspace.result) {
-    return <EmptyWorkspace unavailable={workspace.resultStatus === "unavailable"} />;
+    return (
+      <EmptyWorkspace
+        unavailable={workspace.resultStatus === "unavailable"}
+        error={workspace.resultError}
+      />
+    );
   }
 
   return <PlanningWorkspace result={workspace.result} readiness={workspace.readiness} />;
