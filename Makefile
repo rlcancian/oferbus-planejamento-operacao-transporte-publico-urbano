@@ -24,7 +24,7 @@ dev:
 	bash scripts/dev-run.sh
 
 test-python:
-	source .venv/bin/activate; pytest -q packages/oferbus-core/tests packages/oferbus-db/tests packages/oferbus-jobs/tests packages/oferbus-ai/tests apps/api/tests apps/worker/tests reference-core/tests
+	source .venv/bin/activate; pytest -q packages/oferbus-core/tests packages/oferbus-db/tests packages/oferbus-planning/tests packages/oferbus-jobs/tests packages/oferbus-ai/tests apps/api/tests apps/worker/tests reference-core/tests
 
 lint-python:
 	source .venv/bin/activate; ruff check --select E9,F63,F7,F82 apps packages reference-core scripts
