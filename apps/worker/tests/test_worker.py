@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 from oferbus_core import (
     CostPlanningInput,
@@ -129,13 +130,31 @@ def test_core_planning_executes_real_adapter_and_persists_fingerprints(monkeypat
         payload={},
     )
     queue = FakeQueue(run)
+    plan_revision_id = uuid.uuid4()
+    result_snapshot_id = uuid.uuid4()
+    persisted_call: dict[str, object] = {}
+
     monkeypatch.setattr(worker_main, "load_planning_input", lambda organization_id, scenario_revision_id: planning_input)
+
+    def fake_persist(organization_id, computation_run_id, result):
+        persisted_call.update(
+            organization_id=organization_id,
+            computation_run_id=computation_run_id,
+            output_fingerprint=result.output_fingerprint,
+        )
+        return SimpleNamespace(
+            plan_revision_id=plan_revision_id,
+            result_snapshot_id=result_snapshot_id,
+            revision_no=1,
+        )
+
+    monkeypatch.setattr(worker_main, "persist_planning_result", fake_persist)
 
     processed = worker_main.process_one(queue, "planning-worker")
 
     assert processed is True
     assert queue.failed is None
-    assert queue.heartbeats == [10, 35, 85]
+    assert queue.heartbeats == [10, 35, 85, 95]
     assert queue.succeeded is not None
     assert queue.succeeded["handler"] == "core-planning"
     assert queue.succeeded["semantic_layer"] == "normalized"
@@ -144,7 +163,15 @@ def test_core_planning_executes_real_adapter_and_persists_fingerprints(monkeypat
     assert queue.succeeded["input_fingerprint"] == input_fingerprint
     assert isinstance(queue.output_fingerprint, str) and len(queue.output_fingerprint) == 64
     assert queue.succeeded["output_fingerprint"] == queue.output_fingerprint
-    assert queue.succeeded["result_persistence"] == "deferred-to-phase-b4"
+    assert queue.succeeded["result_persistence"] == "persisted"
+    assert queue.succeeded["plan_revision_id"] == str(plan_revision_id)
+    assert queue.succeeded["result_snapshot_id"] == str(result_snapshot_id)
+    assert queue.succeeded["plan_revision_no"] == 1
+    assert persisted_call == {
+        "organization_id": run.organization_id,
+        "computation_run_id": run.run_id,
+        "output_fingerprint": queue.output_fingerprint,
+    }
 
 
 def test_core_planning_rejects_snapshot_fingerprint_mismatch_without_retry(monkeypatch) -> None:
