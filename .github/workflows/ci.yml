@@ -64,7 +64,7 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
   integrated-smoke:
-    name: PostgreSQL + API + worker + AI tool smoke
+    name: PostgreSQL + API + worker + rendered web acceptance
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -86,11 +86,15 @@ jobs:
       OFERBUS_IDENTITY_MODE: development-header
       OFERBUS_WORKER_POLL_SECONDS: '0.1'
       OFERBUS_WORKER_LEASE_SECONDS: '30'
+      OFERBUS_API_URL: http://127.0.0.1:8010
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Install runtime packages
         run: |
           python -m pip install --upgrade pip setuptools wheel
@@ -103,6 +107,10 @@ jobs:
             -e ./packages/oferbus-ai \
             -e ./apps/api \
             -e ./apps/worker
+      - name: Build web acceptance target
+        run: |
+          npm install
+          npm run web:build
       - name: Apply all migrations
         run: python -m alembic upgrade head
       - name: Seed deterministic development context
@@ -113,8 +121,14 @@ jobs:
           echo $! >/tmp/oferbus-api.pid
           nohup oferbus-worker >/tmp/oferbus-worker.log 2>&1 &
           echo $! >/tmp/oferbus-worker.pid
-      - name: Execute integrated smoke
+      - name: Execute integrated planning smoke
         run: python scripts/integration_smoke.py --api-url http://127.0.0.1:8010 --timeout 30
+      - name: Start production web workspace
+        run: |
+          nohup bash -lc 'cd apps/web && exec node ../../node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3010' >/tmp/oferbus-web.log 2>&1 &
+          echo $! >/tmp/oferbus-web.pid
+      - name: Execute rendered workspace acceptance
+        run: python scripts/web_acceptance.py --web-url http://127.0.0.1:3010 --timeout 30
       - name: Show service logs on failure
         if: failure()
         run: |
@@ -122,3 +136,5 @@ jobs:
           cat /tmp/oferbus-api.log || true
           echo '--- Worker log ---'
           cat /tmp/oferbus-worker.log || true
+          echo '--- Web log ---'
+          cat /tmp/oferbus-web.log || true
