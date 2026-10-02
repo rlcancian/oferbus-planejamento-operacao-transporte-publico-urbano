@@ -42,18 +42,27 @@ For `legacy-exact`, the bridge preserves characterized historical behavior suppo
 
 The adapter is a controlled bridge, not a declaration that the archaeological package is production code. Individual algorithms are promoted behind the same contracts in later subphases.
 
-## B.2 — planning input persistence and application boundary — PRÓXIMA
+## B.2 — planning input persistence and application boundary — CONCLUÍDA
 
-Materialize the smallest PostgreSQL/API model required to create a real planning revision:
+Materialized:
 
-- observed trip dataset and immutable dataset revision;
-- line-direction planning inputs;
-- planning specification/model selection;
-- scenario-revision payload/fingerprint;
-- tenant-safe application commands and queries;
-- development fixture representing a small but operationally coherent line.
+- migration `0004_planning_inputs`;
+- reusable observed-trip datasets with immutable numbered revisions and content fingerprints;
+- observed trips persisted per line direction;
+- scenario-level planning snapshot for semantic layer, vehicle, costs and planning specification;
+- per-direction snapshot for dataset revision, service window, curves, extension and storage semantics;
+- shared `packages/oferbus-planning` application layer independent of FastAPI;
+- creation of datasets and later immutable dataset revisions;
+- creation of immutable planning `ScenarioRevision` records with canonical `PlanningInput` fingerprints;
+- round-trip reconstruction that recalculates and verifies the fingerprint before returning an input;
+- tenant-aware commands and composite foreign keys;
+- authenticated `/planning` API endpoints;
+- deterministic development fixture derived from the characterized single-direction example;
+- integrated PostgreSQL/API smoke validating the persisted planning input.
 
-## B.3 — deterministic planning worker — PENDENTE
+Detailed design: `architecture/OferBus_Phase_B2_Planning_Input_Persistence_v0.1.md`.
+
+## B.3 — deterministic planning worker — PRÓXIMA
 
 Replace `platform-smoke` as the only computational handler with a real planning run:
 
