@@ -33,8 +33,16 @@ from .operations import (
 )
 from .trip_attributes import ExpressTravelParameters, complete_trip_attributes_legacy
 from .return_trips import create_return_trips_cria_1_legacy
-from .return_trips_cria2 import create_return_trips_cria_2_storage_branch_legacy
+from .return_trips_cria2 import (
+    create_return_trips_cria_2_storage_branch_legacy,
+    create_return_trips_cria_2_no_storage_anchored_branch_legacy,
+)
 from .fine_adjustment import fine_adjustment_one_minute_legacy
+from .operational_checks import (
+    GarageCheckResult,
+    remove_orphan_express_returns_legacy,
+    count_departure_intervals_under_four_minutes_legacy,
+)
 from .service_level import (
     service_level_label_legacy,
     stored_service_level_legacy,
@@ -42,17 +50,14 @@ from .service_level import (
     previous_normal_departure_legacy,
     assign_service_levels_legacy,
 )
+
 from .metrics import (
-    CostParameters,
-    OccupancyExtreme,
-    OperatingMetrics,
-    monthly_cost_legacy,
-    projected_worst_occupancy_legacy,
-    projected_mean_occupancy_rate_legacy,
-    calculate_project_metrics_legacy,
-    calculate_project_metrics_distance_corrected,
+    CostParameters, OccupancyExtreme, OperatingMetrics, monthly_cost_legacy,
+    projected_worst_occupancy_legacy, projected_mean_occupancy_rate_legacy,
+    calculate_project_metrics_legacy, calculate_project_metrics_distance_corrected,
     calculate_observed_metrics_legacy,
 )
+
 from .occupancy_semantics import (
     projected_mean_occupancy_rate_normalized,
     projected_mean_operational_occupancy_rate_normalized,
@@ -74,7 +79,10 @@ __all__ = [
     "passengers_in_period_legacy", "previous_normal_departure_legacy",
     "assign_service_levels_legacy", "ExpressTravelParameters", "complete_trip_attributes_legacy",
     "create_return_trips_cria_1_legacy", "create_return_trips_cria_2_storage_branch_legacy",
+    "create_return_trips_cria_2_no_storage_anchored_branch_legacy",
     "fine_adjustment_one_minute_legacy",
+    "GarageCheckResult", "remove_orphan_express_returns_legacy",
+    "count_departure_intervals_under_four_minutes_legacy",
     "CostParameters", "OccupancyExtreme", "OperatingMetrics", "monthly_cost_legacy",
     "projected_worst_occupancy_legacy", "projected_mean_occupancy_rate_legacy",
     "projected_mean_occupancy_rate_normalized",
