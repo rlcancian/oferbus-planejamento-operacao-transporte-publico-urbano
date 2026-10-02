@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: oferbus-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-oferbus}
+      POSTGRES_USER: ${POSTGRES_USER:-oferbus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oferbus_local_dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - oferbus-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-oferbus} -d ${POSTGRES_DB:-oferbus}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  oferbus-postgres-data:
