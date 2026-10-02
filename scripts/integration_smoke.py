@@ -77,7 +77,7 @@ def wait_for_run(api_url: str, run_id: str, timeout: float) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run OferBus integrated platform and deterministic planning smoke")
+    parser = argparse.ArgumentParser(description="Run OferBus integrated platform and persisted planning smoke")
     parser.add_argument("--api-url", default="http://127.0.0.1:8010")
     parser.add_argument("--timeout", type=float, default=30.0)
     args = parser.parse_args()
@@ -87,7 +87,7 @@ def main() -> None:
 
     _, ready = request_json("GET", f"{api_url}/ready")
     assert isinstance(ready, dict) and ready.get("status") == "ready", ready
-    assert ready.get("migration") == "0004_planning_inputs", ready
+    assert ready.get("migration") == "0005_planning_results", ready
 
     _, identity = request_json("GET", f"{api_url}/identity/me", authenticated=True)
     assert isinstance(identity, dict) and identity.get("organization_id") == str(ORGANIZATION_ID), identity
@@ -128,8 +128,8 @@ def main() -> None:
             "confirmed": True,
             "arguments": {
                 "scenario_revision_id": str(SCENARIO_REVISION_ID),
-                "idempotency_key": "phase-b3-platform-smoke-v1",
-                "message": "Phase B3 platform regression smoke passed",
+                "idempotency_key": "phase-b4-platform-smoke-v1",
+                "message": "Phase B4 platform regression smoke passed",
                 "delay_seconds": 0.1,
             },
         },
@@ -139,8 +139,6 @@ def main() -> None:
     assert isinstance(output, dict) and isinstance(output.get("run_id"), str), execution
     platform_final = wait_for_run(api_url, output["run_id"], args.timeout)
 
-    # Submit the first real deterministic planning computation. No scientific
-    # payload is accepted here: all input is loaded from the immutable revision.
     _, planning_run = request_json(
         "POST",
         f"{api_url}/computations",
@@ -148,7 +146,7 @@ def main() -> None:
         body={
             "scenario_revision_id": str(PLANNING_SCENARIO_REVISION_ID),
             "run_kind": "core-planning",
-            "idempotency_key": "phase-b3-core-planning-v1",
+            "idempotency_key": "phase-b4-core-planning-v1",
             "max_attempts": 2,
         },
     )
@@ -173,7 +171,31 @@ def main() -> None:
     assert diagnostics.get("output_fingerprint") == output_fingerprint, diagnostics
     assert isinstance(diagnostics.get("trip_count"), int) and diagnostics["trip_count"] > 0, diagnostics
     assert isinstance(diagnostics.get("effective_fleet"), int) and diagnostics["effective_fleet"] >= 1, diagnostics
-    assert diagnostics.get("result_persistence") == "deferred-to-phase-b4", diagnostics
+    assert diagnostics.get("result_persistence") == "persisted", diagnostics
+    assert isinstance(diagnostics.get("plan_revision_id"), str), diagnostics
+    assert isinstance(diagnostics.get("result_snapshot_id"), str), diagnostics
+
+    _, persisted = request_json(
+        "GET",
+        f"{api_url}/results/computations/{planning_run_id}",
+        authenticated=True,
+    )
+    assert isinstance(persisted, dict), persisted
+    assert persisted.get("computation_run_id") == planning_run_id, persisted
+    assert persisted.get("plan_revision_id") == diagnostics.get("plan_revision_id"), persisted
+    assert persisted.get("result_snapshot_id") == diagnostics.get("result_snapshot_id"), persisted
+    assert persisted.get("plan_revision_no") == diagnostics.get("plan_revision_no"), persisted
+    assert persisted.get("semantic_layer") == "normalized", persisted
+    assert persisted.get("input_fingerprint") == planning_input_fingerprint, persisted
+    assert persisted.get("output_fingerprint") == output_fingerprint, persisted
+    persisted_trips = persisted.get("trips")
+    persisted_blocks = persisted.get("vehicle_blocks")
+    persisted_metrics = persisted.get("metrics")
+    assert isinstance(persisted_trips, list) and len(persisted_trips) == diagnostics["trip_count"], persisted
+    assert isinstance(persisted_blocks, list) and len(persisted_blocks) == diagnostics["effective_fleet"], persisted
+    assert isinstance(persisted_metrics, dict), persisted
+    assert persisted_metrics.get("total_trips") == diagnostics["trip_count"], persisted_metrics
+    assert persisted_metrics.get("effective_fleet") == diagnostics["effective_fleet"], persisted_metrics
 
     print(
         json.dumps(
@@ -185,6 +207,8 @@ def main() -> None:
                 "planning_input_fingerprint": planning_input_fingerprint,
                 "planning_output_fingerprint": output_fingerprint,
                 "planning_run_id": planning_run_id,
+                "plan_revision_id": persisted.get("plan_revision_id"),
+                "result_snapshot_id": persisted.get("result_snapshot_id"),
                 "planning_trip_count": diagnostics.get("trip_count"),
                 "planning_effective_fleet": diagnostics.get("effective_fleet"),
                 "platform_run_id": platform_final.get("run_id"),
