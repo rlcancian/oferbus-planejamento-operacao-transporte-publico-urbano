@@ -9,21 +9,20 @@ Para entender o estado atual, leia nesta ordem:
 1. `archaeology/OferBus_Consolidated_Archaeology_v1.0.md` — o que o OferBus histórico é e o que foi recuperado;
 2. `architecture/OferBus_Rematerialization_Architecture_v0.1.md` — arquitetura alvo do OferBus 2026;
 3. `architecture/OferBus_Phase_A_Platform_Skeleton_Plan_v0.1.md` — plano e estado da Phase A;
-4. `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md` — baseline PostgreSQL física;
-5. `architecture/OferBus_Identity_and_Tenancy_v0.1.md` — autenticação substituível, tenancy explícita e autorização;
-6. `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md` — fila, worker, retries, idempotência e progresso;
-7. `decisions/ADR-0005-ai-provider-and-tool-boundary.md` — fronteira provider-neutral do Copilot e ferramentas estruturadas;
-8. `architecture/OferBus_Phase_A6_Quality_Gate_and_Local_Startup_v0.1.md` — bootstrap, quality gates e primeira execução no navegador;
-9. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
+4. `architecture/OferBus_Phase_B_Core_Planning_Vertical_Slice_Plan_v0.1.md` — plano e estado da primeira fatia funcional de planejamento;
+5. `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md` — baseline PostgreSQL física;
+6. `architecture/OferBus_Identity_and_Tenancy_v0.1.md` — autenticação substituível, tenancy explícita e autorização;
+7. `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md` — fila, worker, retries, idempotência e progresso;
+8. `decisions/ADR-0005-ai-provider-and-tool-boundary.md` — fronteira provider-neutral do Copilot e ferramentas estruturadas;
+9. `architecture/OferBus_Phase_A6_Quality_Gate_and_Local_Startup_v0.1.md` — bootstrap, quality gates e primeira execução no navegador;
+10. `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md` — contrato conceitual/lógico de persistência.
 
 ## Estado da materialização
 
-- **Phase A.1 — Platform Skeleton:** concluída;
-- **Phase A.2 — Persistence Baseline:** concluída;
-- **Phase A.3 — Identity and Tenancy Boundary:** concluída;
-- **Phase A.4 — Asynchronous Computation Boundary:** concluída;
-- **Phase A.5 — AI and Tool Boundary:** concluída;
-- **Phase A.6 — Quality Gate and Local Startup:** implementada; aceitação no notebook de desenvolvimento pendente.
+- **Phase A.1–A.6 — Platform Foundation:** concluída e validada localmente;
+- **Phase B.1 — Production Planning Contracts and Reference Bridge:** concluída;
+- **Phase B.2 — Planning Input Persistence and Application Boundary:** próxima;
+- **Phase B.3–B.6:** pendentes.
 
 ## Arqueologia
 
@@ -59,6 +58,7 @@ Para entender o estado atual, leia nesta ordem:
 
 - `architecture/OferBus_Rematerialization_Architecture_v0.1.md`
 - `architecture/OferBus_Phase_A_Platform_Skeleton_Plan_v0.1.md`
+- `architecture/OferBus_Phase_B_Core_Planning_Vertical_Slice_Plan_v0.1.md`
 - `architecture/OferBus_Phase_A2_Persistence_Baseline_v0.1.md`
 - `architecture/OferBus_Identity_and_Tenancy_v0.1.md`
 - `architecture/OferBus_Phase_A4_Async_Computation_Boundary_v0.1.md`
@@ -68,6 +68,7 @@ Para entender o estado atual, leia nesta ordem:
 
 - `persistence/OferBus_PostgreSQL_Persistence_Model_v0.1.md`
 - `persistence/OferBus_PostgreSQL_Logical_DDL_v0.1.sql`
+- `../packages/oferbus-core/` — contratos de produção, validação, fingerprints e ponte de referência da B.1;
 - `../packages/oferbus-db/` — modelos SQLAlchemy da baseline física;
 - `../packages/oferbus-jobs/` — contrato de fila e implementação PostgreSQL inicial;
 - `../packages/oferbus-ai/` — contrato provider-neutral e ferramentas estruturadas do Copilot;
@@ -87,4 +88,4 @@ PostgreSQL é a fonte de verdade. Arquivos nativos históricos são apenas fonte
 
 ## Reference core
 
-`../reference-core/` contém a implementação de referência usada para converter a semântica recuperada do Visual Basic em contratos computacionais executáveis e testes de caracterização. Ele permanece separado do `oferbus-core` de produção até promoção deliberada dos módulos.
+`../reference-core/` contém a implementação de referência usada para converter a semântica recuperada do Visual Basic em contratos computacionais executáveis e testes de caracterização. Ele permanece separado do `oferbus-core` de produção; na B.1 ele é acessado apenas por uma ponte explicitamente temporária e rastreável.
