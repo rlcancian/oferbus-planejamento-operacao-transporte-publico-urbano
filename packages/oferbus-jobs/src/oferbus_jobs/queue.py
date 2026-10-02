@@ -37,6 +37,7 @@ class RunSnapshot:
     run_kind: str
     semantic_layer: str
     status: str
+    payload: dict[str, Any]
     progress_percent: int
     attempt_count: int
     max_attempts: int
@@ -67,6 +68,7 @@ def _snapshot(run: ComputationRun, job: ComputationJob) -> RunSnapshot:
         run_kind=run.run_kind,
         semantic_layer=run.semantic_layer,
         status=run.status,
+        payload=job.payload or {},
         progress_percent=job.progress_percent,
         attempt_count=job.attempt_count,
         max_attempts=job.max_attempts,
