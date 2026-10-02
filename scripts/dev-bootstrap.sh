@@ -53,6 +53,7 @@ python -m pip install \
   -e './reference-core' \
   -e './packages/oferbus-core[dev]' \
   -e './packages/oferbus-db[dev]' \
+  -e './packages/oferbus-planning[dev]' \
   -e './packages/oferbus-jobs[dev]' \
   -e './packages/oferbus-ai[dev]' \
   -e './apps/api[dev]' \
