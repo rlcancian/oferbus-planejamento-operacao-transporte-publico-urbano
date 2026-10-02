@@ -50,12 +50,13 @@ fi
 source .venv/bin/activate
 python -m pip install --upgrade pip setuptools wheel
 python -m pip install \
+  -e './reference-core' \
+  -e './packages/oferbus-core[dev]' \
   -e './packages/oferbus-db[dev]' \
   -e './packages/oferbus-jobs[dev]' \
   -e './packages/oferbus-ai[dev]' \
   -e './apps/api[dev]' \
   -e './apps/worker[dev]' \
-  -e './reference-core' \
   'ruff>=0.11,<1'
 
 npm install
