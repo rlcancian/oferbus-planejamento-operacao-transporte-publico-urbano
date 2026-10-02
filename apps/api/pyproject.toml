@@ -1,12 +1,13 @@
 [project]
 name = "oferbus-api"
-version = "0.4.0"
+version = "0.5.0"
 description = "OferBus 2026 application API"
 requires-python = ">=3.13,<3.15"
 dependencies = [
   "fastapi==0.142.2",
   "pydantic==2.13.5",
   "uvicorn[standard]==0.54.0",
+  "oferbus-ai==0.1.0",
   "oferbus-db==0.1.0",
   "oferbus-jobs==0.1.0",
 ]
