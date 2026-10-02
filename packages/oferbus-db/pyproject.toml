@@ -2,7 +2,7 @@
 name = "oferbus-db"
 version = "0.1.0"
 description = "OferBus 2026 PostgreSQL persistence package"
-requires-python = ">=3.13,<3.15"
+requires-python = ">=3.12,<3.15"
 dependencies = [
   "SQLAlchemy==2.1.1",
   "psycopg[binary]==3.3.6",
