@@ -17,9 +17,11 @@ Materialized: optional PostgreSQL 18 local service, `packages/oferbus-db` with S
 
 The remaining accepted logical tables are intentionally materialized together with the vertical slices that exercise them rather than frozen in one oversized initial migration.
 
-## Phase A.3 — identity and tenancy boundary — PENDENTE
+## Phase A.3 — identity and tenancy boundary — CONCLUÍDA
 
-Authentication adapter boundary, organizations/memberships/roles at application level, authorization guards, audit identity propagation, evaluate Row-Level Security, replaceable identity provider.
+Materialized: provider-neutral `IdentityAdapter`, local-only development identity adapter, explicit active-organization context, application `Principal`, centralized RBAC permission matrix (`owner`, `admin`, `planner`, `viewer`), `/identity/me`, audit identity propagation, `audit_event` persistence and migration `0002_identity_tenancy`.
+
+PostgreSQL Row-Level Security (RLS) was evaluated and is deliberately deferred until migration-owner and application-runtime database roles are separated. Composite tenant foreign keys and application authorization remain the active controls in the current development baseline.
 
 ## Phase A.4 — asynchronous computation boundary — PENDENTE
 
