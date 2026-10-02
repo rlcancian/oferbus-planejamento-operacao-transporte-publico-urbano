@@ -12,9 +12,14 @@ from .application import (
     create_scenario_revision,
     load_planning_input,
 )
+from .datasets import (
+    CreateObservedDatasetRevisionCommand,
+    create_observed_dataset_revision,
+)
 
 __all__ = [
     "CreateObservedDatasetCommand",
+    "CreateObservedDatasetRevisionCommand",
     "CreateScenarioRevisionCommand",
     "DatasetRevisionCreated",
     "DirectionObservationBatch",
@@ -24,6 +29,7 @@ __all__ = [
     "PlanningInputNotFound",
     "ScenarioRevisionCreated",
     "create_observed_dataset",
+    "create_observed_dataset_revision",
     "create_scenario_revision",
     "load_planning_input",
 ]
