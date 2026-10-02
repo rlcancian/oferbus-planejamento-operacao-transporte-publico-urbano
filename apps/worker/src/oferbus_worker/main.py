@@ -7,7 +7,12 @@ from dataclasses import asdict, dataclass
 
 from oferbus_core import ENGINE_ID, ENGINE_VERSION, ReferencePlanningAdapter, fingerprint
 from oferbus_jobs import PostgresComputationQueue, RunSnapshot
-from oferbus_planning import PlanningInputError, load_planning_input
+from oferbus_planning import (
+    PlanningInputError,
+    PlanningResultPersistenceError,
+    load_planning_input,
+    persist_planning_result,
+)
 
 POLL_INTERVAL_SECONDS = float(os.getenv("OFERBUS_WORKER_POLL_SECONDS", "1.0"))
 LEASE_SECONDS = int(os.getenv("OFERBUS_WORKER_LEASE_SECONDS", "60"))
@@ -84,6 +89,11 @@ def core_planning(run: RunSnapshot, queue: PostgresComputationQueue, owner: str)
         raise NonRetryableJobError("planning engine provenance does not match worker engine")
 
     queue.heartbeat(run.run_id, owner, progress_percent=85, lease_seconds=LEASE_SECONDS)
+    try:
+        persisted = persist_planning_result(run.organization_id, run.run_id, result)
+    except PlanningResultPersistenceError as exc:
+        raise NonRetryableJobError(f"planning result cannot be materialized: {exc}") from exc
+    queue.heartbeat(run.run_id, owner, progress_percent=95, lease_seconds=LEASE_SECONDS)
 
     metrics = asdict(result.metrics)
     diagnostics: dict[str, object] = {
@@ -100,7 +110,10 @@ def core_planning(run: RunSnapshot, queue: PostgresComputationQueue, owner: str)
         "total_distance_km": metrics["total_distance_km"],
         "daily_total_cost": metrics["daily_total_cost"],
         "provenance_notes": list(result.provenance_notes),
-        "result_persistence": "deferred-to-phase-b4",
+        "result_persistence": "persisted",
+        "plan_revision_id": str(persisted.plan_revision_id),
+        "plan_revision_no": persisted.revision_no,
+        "result_snapshot_id": str(persisted.result_snapshot_id),
     }
     return HandlerOutcome(diagnostics=diagnostics, output_fingerprint=result.output_fingerprint)
 
