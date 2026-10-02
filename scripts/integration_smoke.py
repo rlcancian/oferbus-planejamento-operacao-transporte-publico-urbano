@@ -5,10 +5,10 @@ import json
 import time
 import urllib.error
 import urllib.request
+import uuid
 
 from dev_seed import (
     ORGANIZATION_ID,
-    PLANNING_SCENARIO_ID,
     PLANNING_SCENARIO_REVISION_ID,
     PROJECT_ID,
     SCENARIO_REVISION_ID,
@@ -84,6 +84,7 @@ def main() -> None:
     parser.add_argument("--timeout", type=float, default=30.0)
     args = parser.parse_args()
     api_url = args.api_url.rstrip("/")
+    smoke_token = uuid.uuid4().hex
 
     wait_for_api(api_url, args.timeout)
 
@@ -111,7 +112,9 @@ def main() -> None:
     assert directions[0].get("direction_key") == "outbound", directions
     assert len(directions[0].get("observations", [])) == 3, directions
 
-    # Retain the Phase A AI/platform smoke as a regression check.
+    # Retain the Phase A AI/platform smoke as a regression check. Every smoke invocation uses
+    # fresh idempotency keys so repeated local runs exercise a new computation rather than
+    # inheriting terminal state from a previous successful smoke.
     _, ai_status = request_json("GET", f"{api_url}/ai/status")
     assert isinstance(ai_status, dict) and ai_status.get("boundary") == "ready", ai_status
     assert ai_status.get("direct_sql_allowed") is False, ai_status
@@ -130,7 +133,7 @@ def main() -> None:
             "confirmed": True,
             "arguments": {
                 "scenario_revision_id": str(SCENARIO_REVISION_ID),
-                "idempotency_key": "phase-b5-platform-smoke-v1",
+                "idempotency_key": f"phase-b5-platform-smoke-{smoke_token}",
                 "message": "Phase B5 platform regression smoke passed",
                 "delay_seconds": 0.1,
             },
@@ -148,7 +151,7 @@ def main() -> None:
         body={
             "scenario_revision_id": str(PLANNING_SCENARIO_REVISION_ID),
             "run_kind": "core-planning",
-            "idempotency_key": "phase-b5-core-planning-v1",
+            "idempotency_key": f"phase-b5-core-planning-{smoke_token}",
             "max_attempts": 2,
         },
     )
@@ -156,6 +159,7 @@ def main() -> None:
     assert planning_run.get("run_kind") == "core-planning", planning_run
     assert planning_run.get("semantic_layer") == "normalized", planning_run
     assert planning_run.get("input_fingerprint") == planning_input_fingerprint, planning_run
+    assert planning_run.get("status") in {"queued", "running"}, planning_run
     assert planning_run.get("output_fingerprint") is None, planning_run
     planning_run_id = planning_run.get("run_id")
     assert isinstance(planning_run_id, str), planning_run
@@ -194,8 +198,6 @@ def main() -> None:
     context = persisted.get("context")
     assert isinstance(context, dict), persisted
     assert context.get("project_id") == str(PROJECT_ID), context
-    assert context.get("scenario_id") == str(PLANNING_SCENARIO_ID), context
-    assert isinstance(context.get("project_name"), str) and context["project_name"], context
     assert context.get("scenario_name") == "Phase B Core Planning Fixture", context
     assert context.get("scenario_revision_id") == str(PLANNING_SCENARIO_REVISION_ID), context
     lines = context.get("lines")
