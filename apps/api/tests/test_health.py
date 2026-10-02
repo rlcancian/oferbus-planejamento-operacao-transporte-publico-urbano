@@ -9,5 +9,5 @@ def test_health_endpoint() -> None:
     assert response.json() == {
         "service": "oferbus-api",
         "status": "ok",
-        "version": "0.6.0",
+        "version": "0.7.0",
     }
