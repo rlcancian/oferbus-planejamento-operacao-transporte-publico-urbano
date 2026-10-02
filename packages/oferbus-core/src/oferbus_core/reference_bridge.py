@@ -16,7 +16,6 @@ from oferbus_legacy_core import (
     minimum_timetable_2007_legacy,
     projected_mean_occupancy_rate_legacy,
     projected_mean_occupancy_rate_normalized,
-    vehicle_blocks,
 )
 
 from .contracts import (
@@ -164,10 +163,12 @@ class ReferencePlanningAdapter:
             )
             for item in operational
         )
-        blocks = {
-            number: tuple(operational.index(item) for item in items)
-            for number, items in vehicle_blocks(operational).items()
-        }
+        blocks: dict[int, list[int]] = {}
+        for trip_index, item in enumerate(operational):
+            if item.vehicle > 0:
+                blocks.setdefault(item.vehicle, []).append(trip_index)
+        block_result = {number: tuple(indexes) for number, indexes in blocks.items()}
+
         metrics_result = PlanningMetricsResult(**asdict(metrics))
         input_fingerprint = fingerprint(planning_input)
         provenance_notes = self._provenance_notes(planning_input.semantic_layer)
@@ -178,7 +179,7 @@ class ReferencePlanningAdapter:
             "input_fingerprint": input_fingerprint,
             "trips": trip_results,
             "effective_fleet": effective_fleet,
-            "vehicle_blocks": blocks,
+            "vehicle_blocks": block_result,
             "metrics": metrics_result,
             "provenance_notes": provenance_notes,
         }
@@ -191,7 +192,7 @@ class ReferencePlanningAdapter:
             output_fingerprint=fingerprint(output_payload),
             trips=trip_results,
             effective_fleet=effective_fleet,
-            vehicle_blocks=blocks,
+            vehicle_blocks=block_result,
             metrics=metrics_result,
             provenance_notes=provenance_notes,
         )
