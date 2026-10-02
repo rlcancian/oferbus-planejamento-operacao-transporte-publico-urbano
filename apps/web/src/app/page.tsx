@@ -1,82 +1,48 @@
-type Readiness = {
-  status: string;
-  database: string;
-  schema_name: string;
-  server_version: string;
-  migration: string;
-};
-
-type CopilotStatus = {
-  boundary: string;
-  provider: string;
-  configured: boolean;
-  model: string | null;
-  direct_sql_allowed: boolean;
-};
+import { PlanningWorkspace } from "../components/planning-workspace";
+import { loadPlanningWorkspace } from "../lib/oferbus-api";
 
 export const dynamic = "force-dynamic";
 
-async function loadReadiness(): Promise<Readiness | null> {
-  const apiBase = process.env.OFERBUS_API_URL ?? "http://127.0.0.1:8010";
-
-  try {
-    const response = await fetch(`${apiBase}/ready`, { cache: "no-store" });
-    if (!response.ok) return null;
-    return (await response.json()) as Readiness;
-  } catch {
-    return null;
-  }
-}
-
-async function loadCopilotStatus(): Promise<CopilotStatus | null> {
-  const apiBase = process.env.OFERBUS_API_URL ?? "http://127.0.0.1:8010";
-
-  try {
-    const response = await fetch(`${apiBase}/ai/status`, { cache: "no-store" });
-    if (!response.ok) return null;
-    return (await response.json()) as CopilotStatus;
-  } catch {
-    return null;
-  }
-}
-
-export default async function Home() {
-  const [readiness, copilot] = await Promise.all([loadReadiness(), loadCopilotStatus()]);
-
+function EmptyWorkspace({ unavailable }: { unavailable: boolean }) {
   return (
-    <main className="shell">
-      <section className="hero">
-        <div className="eyebrow">OferBus 2026 · Phase A platform foundation</div>
-        <h1>Planejamento operacional urbano, reconstruído para a web.</h1>
-        <p>
-          A fundação multiusuário já separa experiência web, API Python, identidade por organização,
-          execução assíncrona, núcleo computacional determinístico, persistência PostgreSQL e uma
-          fronteira nativa e auditável para o OferBus Copilot. Esta instalação está pronta para o
-          quality gate local antes do primeiro vertical slice de planejamento.
-        </p>
-
-        <div className="status-grid" aria-label="Estado da plataforma">
-          <article><strong>Web</strong><span>Next.js 16 / React 19</span><small>Interface operacional e visualizações</small></article>
-          <article><strong>API</strong><span>FastAPI / Python</span><small>Fronteira autoritativa do domínio</small></article>
-          <article><strong>Identidade</strong><span>Organizações · RBAC · auditoria</span><small>Provedor de login permanece substituível</small></article>
-          <article><strong>Jobs</strong><span>PostgreSQL · worker Python</span><small>Lease, heartbeat, retries e progresso SSE</small></article>
-          <article><strong>Core</strong><span>legacy-exact · normalized · modern</span><small>Modelos determinísticos versionados</small></article>
-          <article className={copilot ? "status-online" : "status-pending"}>
-            <strong>Copilot</strong>
-            <span>{copilot ? `boundary pronta · ${copilot.provider}` : "aguardando API"}</span>
-            <small>{copilot ? (copilot.configured ? `provider configurado${copilot.model ? ` · ${copilot.model}` : ""}` : "provider LLM ainda não selecionado · SQL direto bloqueado") : "Fronteira provider-neutral"}</small>
-          </article>
-          <article className={readiness ? "status-online" : "status-pending"}>
-            <strong>PostgreSQL</strong>
-            <span>{readiness ? `conectado · ${readiness.database}` : "aguardando API / banco"}</span>
-            <small>{readiness ? `PostgreSQL ${readiness.server_version} · migration ${readiness.migration}` : "Aplique as migrations da Phase A para ativar a persistência local"}</small>
-          </article>
+    <main className="workspace-shell empty-workspace">
+      <header className="topbar">
+        <div className="brand-lockup">
+          <span className="brand-mark" aria-hidden="true">O</span>
+          <div>
+            <strong>OferBus</strong>
+            <small>planejamento operacional</small>
+          </div>
         </div>
+        <div className={`system-pill ${unavailable ? "system-offline" : "system-online"}`}>
+          <span aria-hidden="true" />
+          {unavailable ? "API / identidade indisponível" : "Plataforma pronta"}
+        </div>
+      </header>
 
-        <div className="architecture-strip" aria-label="Fluxo arquitetural">
-          <span>Projetista</span><i>→</i><span>Web</span><i>→</i><span>API</span><i>→</i><span>Copilot / Tools</span><i>→</i><span>ComputationRun</span><i>→</i><span>Worker</span><i>→</i><span>OferBus Core</span><i>→</i><span>PostgreSQL</span>
+      <section className="empty-stage">
+        <div className="empty-orbit" aria-hidden="true"><i /><i /><i /></div>
+        <span className="section-kicker">Workspace operacional</span>
+        <h1>{unavailable ? "O resultado ainda não pode ser carregado." : "Ainda não há um plano calculado."}</h1>
+        <p>
+          {unavailable
+            ? "O frontend está operacional, mas a API autenticada de resultados não respondeu. Em desenvolvimento, confirme que make dev está ativo e que o contexto seed foi criado."
+            : "Execute uma computação core-planning para materializar a primeira revisão. O workspace aparecerá automaticamente com horários, blocos, frota, indicadores e provenance."}
+        </p>
+        <div className="empty-flow" aria-label="Fluxo para gerar o primeiro resultado">
+          <span>ScenarioRevision</span><i>→</i><span>core-planning</span><i>→</i><span>PlanRevision</span><i>→</i><span>Workspace</span>
         </div>
       </section>
     </main>
   );
+}
+
+export default async function Home() {
+  const workspace = await loadPlanningWorkspace();
+
+  if (!workspace.result) {
+    return <EmptyWorkspace unavailable={workspace.resultStatus === "unavailable"} />;
+  }
+
+  return <PlanningWorkspace result={workspace.result} readiness={workspace.readiness} />;
 }
