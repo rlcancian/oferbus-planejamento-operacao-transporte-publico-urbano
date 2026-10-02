@@ -107,6 +107,15 @@ def _context_for_result(
     organization_id: uuid.UUID,
     persisted: PersistedPlanningResult,
 ) -> PlanningResultContextResponse:
+    plan = session.execute(
+        select(PlanRevision).where(
+            PlanRevision.organization_id == organization_id,
+            PlanRevision.id == persisted.plan_revision_id,
+        )
+    ).scalar_one_or_none()
+    if plan is None:
+        raise PlanningResultIntegrityError("persisted result has no plan revision context")
+
     row = session.execute(
         select(
             ScenarioRevision.id.label("scenario_revision_id"),
@@ -132,15 +141,7 @@ def _context_for_result(
         )
         .where(
             ScenarioRevision.organization_id == organization_id,
-            ScenarioRevision.id == persisted.planning_result.input_fingerprint
-            if False
-            else ScenarioRevision.id
-            == select(PlanRevision.scenario_revision_id)
-            .where(
-                PlanRevision.organization_id == organization_id,
-                PlanRevision.id == persisted.plan_revision_id,
-            )
-            .scalar_subquery(),
+            ScenarioRevision.id == plan.scenario_revision_id,
         )
     ).mappings().one_or_none()
     if row is None:
@@ -165,7 +166,7 @@ def _context_for_result(
         )
         .where(
             ScenarioDirectionPlanningInput.organization_id == organization_id,
-            ScenarioDirectionPlanningInput.scenario_revision_id == row["scenario_revision_id"],
+            ScenarioDirectionPlanningInput.scenario_revision_id == plan.scenario_revision_id,
         )
         .distinct()
         .order_by(TransitLine.public_code, TransitLine.name)
