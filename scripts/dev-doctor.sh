@@ -42,8 +42,8 @@ if [[ -x .venv/bin/python && -f .env ]]; then
 from oferbus_db import check_database
 status = check_database()
 print(f"PASS  PostgreSQL: {status['database']} · server {status['server_version']} · migration {status['migration']}")
-if status['migration'] != '0003_async_computation':
-    raise SystemExit(f"expected migration 0003_async_computation, got {status['migration']}")
+if status['migration'] != '0004_planning_inputs':
+    raise SystemExit(f"expected migration 0004_planning_inputs, got {status['migration']}")
 PY
   then
     :
