@@ -50,6 +50,10 @@ jobs:
           node-version: '22'
       - name: Install web dependencies
         run: npm install
+      - name: Validate local launcher prerequisites
+        run: |
+          bash -n scripts/dev-bootstrap.sh scripts/dev-doctor.sh scripts/dev-run.sh
+          test -f node_modules/next/dist/bin/next
       - name: TypeScript typecheck
         run: npm run web:typecheck
       - name: Next.js production build
