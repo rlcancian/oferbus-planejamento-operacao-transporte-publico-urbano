@@ -33,6 +33,7 @@ class PlanRevision(Base):
     revision_no: Mapped[int] = mapped_column(Integer, nullable=False)
     source_kind: Mapped[str] = mapped_column(String(32), nullable=False, default="computed")
     semantic_layer: Mapped[str] = mapped_column(String(32), nullable=False)
+    engine_id: Mapped[str] = mapped_column(String(80), nullable=False)
     engine_version: Mapped[str] = mapped_column(String(80), nullable=False)
     input_fingerprint: Mapped[str] = mapped_column(String(128), nullable=False)
     output_fingerprint: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -86,7 +87,7 @@ class PlannedTrip(Base):
         UniqueConstraint("plan_revision_id", "sequence_no", name="uq_planned_trip_plan_sequence"),
         CheckConstraint("sequence_no > 0", name="sequence_positive"),
         CheckConstraint("legacy_direction_number > 0", name="legacy_direction_positive"),
-        CheckConstraint("vehicle_block_no > 0", name="vehicle_block_positive"),
+        CheckConstraint("vehicle_block_no >= 0", name="vehicle_block_nonnegative"),
         CheckConstraint("arrival_service_minute >= departure_service_minute", name="service_time_order"),
         CheckConstraint(
             "virtual_arrival_service_minute >= virtual_departure_service_minute",
