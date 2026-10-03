@@ -34,27 +34,31 @@ A manual operation must never mutate a historical computed plan in place.
 - Authorship, reason and edit provenance must be persisted for manual revisions.
 - The March Diagram is an engineering editor; visual design may improve usability but cannot change operational meaning.
 
-## C.1 — March read model and read-only SVG surface — EM ANDAMENTO
+## C.1 — March read model and read-only SVG surface — CONCLUÍDA
 
-Materialize a dedicated tenant-safe read model for March Diagram rendering and the first precise browser visualization.
+Materialized:
 
-Scope:
+- API `0.10.0` with tenant-safe `GET /plans/{plan_revision_id}/march`;
+- plan revision identity, parent/source metadata, semantic layer and output fingerprint in the March read model;
+- exact service-time domain derived from persisted real and virtual trip times;
+- line, direction and origin/destination terminal context;
+- actual/virtual trip times, normal/express semantics, vehicle block and service level;
+- explicit rejection of ambiguous direction keys instead of drawing a potentially incorrect multi-line plan;
+- semantic SVG March Diagram in the operational workspace;
+- horizontal service-time axis with explicit clock labels;
+- terminal rails and trip trajectories using domain coordinates rather than decorative placement;
+- separate dashed virtual trajectory when virtual and actual times differ;
+- vehicle-block visual distinction plus sequence number, direction and native SVG tooltip so meaning does not depend only on color;
+- responsive horizontal overflow and reduced-motion-safe hover emphasis;
+- dedicated error state for the March surface without taking down the rest of the planning workspace;
+- integrated smoke assertions for plan, terminal, time-domain and trip semantics;
+- rendered Next.js production acceptance requiring the real March Diagram and rejecting the fallback/error surface.
 
-- plan revision identity, parent/source metadata and semantic layer;
-- exact service-time domain;
-- line/direction/terminal context;
-- actual and virtual trip times;
-- normal/express semantics;
-- vehicle block identity;
-- SVG time axis and terminal rails;
-- trip trajectories with block and direction information;
-- accessible inspection/tooltips;
-- responsive rendering without changing operational coordinates;
-- rendered-web CI acceptance.
+The current persisted trip contract identifies directions by `direction_key`. C.1 therefore rejects a scenario where the same key is ambiguous across multiple lines. A later multi-line promotion must persist an explicit line/direction identifier on planned trips rather than infer it in the UI.
 
-C.1 is deliberately read-only. No drag operation may mutate data until the command/versioning boundary exists.
+C.1 is deliberately read-only. No drag operation mutates data until the command/versioning boundary exists.
 
-## C.2 — Versioned editing domain and persistence boundary — PENDENTE
+## C.2 — Versioned editing domain and persistence boundary — PRÓXIMA
 
 Introduce the explicit manual-revision command model and persistence required for derived plans.
 
