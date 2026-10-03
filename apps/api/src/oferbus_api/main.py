@@ -27,39 +27,18 @@ class DatabaseStatus(BaseModel):
     migration: str
 
 
-app = FastAPI(
-    title="OferBus API",
-    version="0.12.0",
-    description="Application boundary for the OferBus 2026 planning platform.",
-)
-app.include_router(identity_router)
-app.include_router(computations_router)
-app.include_router(ai_router)
-app.include_router(planning_router)
-app.include_router(results_router)
-app.include_router(march_router)
-app.include_router(edits_router)
+app = FastAPI(title="OferBus API", version="0.13.0", description="Application boundary for the OferBus 2026 planning platform.")
+app.include_router(identity_router); app.include_router(computations_router); app.include_router(ai_router); app.include_router(planning_router); app.include_router(results_router); app.include_router(march_router); app.include_router(edits_router)
 
 
 @app.get("/health", response_model=HealthStatus, tags=["platform"])
 def health() -> HealthStatus:
-    return HealthStatus(service="oferbus-api", status="ok", version="0.12.0")
+    return HealthStatus(service="oferbus-api", status="ok", version="0.13.0")
 
 
 @app.get("/ready", response_model=DatabaseStatus, tags=["platform"])
 def ready() -> DatabaseStatus:
-    try:
-        database = check_database()
-    except SQLAlchemyError as exc:
-        raise HTTPException(status_code=503, detail="PostgreSQL is not ready") from exc
-
-    if database["migration"] == "unversioned":
-        raise HTTPException(status_code=503, detail="PostgreSQL is reachable but migrations are not applied")
-
-    return DatabaseStatus(
-        status="ready",
-        database=database["database"],
-        schema_name="oferbus",
-        server_version=database["server_version"],
-        migration=database["migration"],
-    )
+    try: database = check_database()
+    except SQLAlchemyError as exc: raise HTTPException(status_code=503, detail="PostgreSQL is not ready") from exc
+    if database["migration"] == "unversioned": raise HTTPException(status_code=503, detail="PostgreSQL is reachable but migrations are not applied")
+    return DatabaseStatus(status="ready", database=database["database"], schema_name="oferbus", server_version=database["server_version"], migration=database["migration"])
