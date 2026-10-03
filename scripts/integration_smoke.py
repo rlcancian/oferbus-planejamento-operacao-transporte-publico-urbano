@@ -33,7 +33,7 @@ def request_json(
             {
                 "X-OferBus-Subject": SUBJECT,
                 "X-OferBus-Organization-Id": str(ORGANIZATION_ID),
-                "X-Correlation-Id": "phase-b-integration-smoke",
+                "X-Correlation-Id": "phase-c-integration-smoke",
             }
         )
 
@@ -133,8 +133,8 @@ def main() -> None:
             "confirmed": True,
             "arguments": {
                 "scenario_revision_id": str(SCENARIO_REVISION_ID),
-                "idempotency_key": f"phase-b5-platform-smoke-{smoke_token}",
-                "message": "Phase B5 platform regression smoke passed",
+                "idempotency_key": f"phase-c-platform-smoke-{smoke_token}",
+                "message": "Phase C platform regression smoke passed",
                 "delay_seconds": 0.1,
             },
         },
@@ -151,7 +151,7 @@ def main() -> None:
         body={
             "scenario_revision_id": str(PLANNING_SCENARIO_REVISION_ID),
             "run_kind": "core-planning",
-            "idempotency_key": f"phase-b5-core-planning-{smoke_token}",
+            "idempotency_key": f"phase-c-core-planning-{smoke_token}",
             "max_attempts": 2,
         },
     )
@@ -214,6 +214,31 @@ def main() -> None:
     assert persisted_metrics.get("total_trips") == diagnostics["trip_count"], persisted_metrics
     assert persisted_metrics.get("effective_fleet") == diagnostics["effective_fleet"], persisted_metrics
 
+    plan_revision_id = persisted.get("plan_revision_id")
+    assert isinstance(plan_revision_id, str), persisted
+    _, march = request_json(
+        "GET",
+        f"{api_url}/plans/{plan_revision_id}/march",
+        authenticated=True,
+    )
+    assert isinstance(march, dict), march
+    assert march.get("plan_revision_id") == plan_revision_id, march
+    assert march.get("scenario_revision_id") == str(PLANNING_SCENARIO_REVISION_ID), march
+    assert march.get("source_kind") == "computed", march
+    assert march.get("semantic_layer") == "normalized", march
+    assert march.get("output_fingerprint") == output_fingerprint, march
+    assert march.get("service_start_minute") == 60, march
+    assert march.get("service_end_minute") == 130, march
+    march_directions = march.get("directions")
+    assert isinstance(march_directions, list) and len(march_directions) == 1, march
+    assert march_directions[0].get("direction_key") == "outbound", march_directions
+    assert march_directions[0].get("line_public_code") == "DEV-001", march_directions
+    assert march_directions[0].get("origin", {}).get("name") == "Terminal Origem", march_directions
+    assert march_directions[0].get("destination", {}).get("name") == "Terminal Destino", march_directions
+    march_trips = march.get("trips")
+    assert isinstance(march_trips, list) and len(march_trips) == diagnostics["trip_count"], march
+    assert [trip.get("sequence_no") for trip in march_trips] == list(range(1, diagnostics["trip_count"] + 1)), march
+
     _, latest = request_json("GET", f"{api_url}/results/latest", authenticated=True)
     assert isinstance(latest, dict), latest
     assert latest.get("computation_run_id") == planning_run_id, latest
@@ -230,10 +255,12 @@ def main() -> None:
                 "planning_input_fingerprint": planning_input_fingerprint,
                 "planning_output_fingerprint": output_fingerprint,
                 "planning_run_id": planning_run_id,
-                "plan_revision_id": persisted.get("plan_revision_id"),
+                "plan_revision_id": plan_revision_id,
                 "result_snapshot_id": persisted.get("result_snapshot_id"),
                 "planning_trip_count": diagnostics.get("trip_count"),
                 "planning_effective_fleet": diagnostics.get("effective_fleet"),
+                "march_direction_count": len(march_directions),
+                "march_trip_count": len(march_trips),
                 "workspace_project": context.get("project_name"),
                 "workspace_scenario": context.get("scenario_name"),
                 "platform_run_id": platform_final.get("run_id"),
