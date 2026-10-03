@@ -3,7 +3,7 @@ import uuid
 import pytest
 from pydantic import ValidationError
 
-from oferbus_api.edits import ForkPlanRequest, MoveTripRequest
+from oferbus_api.edits import ForkPlanRequest, MoveTripRequest, SetTripExpressRequest
 from oferbus_api.main import app
 
 
@@ -41,6 +41,28 @@ def test_c3_move_trip_contract_uses_integer_service_minutes() -> None:
             reason="Negative service minutes are invalid.",
             trip_sequence_no=1,
             departure_service_minute=-1,
+        )
+
+
+def test_c4_express_edit_is_typed_and_boolean() -> None:
+    request = SetTripExpressRequest(
+        client_command_id=uuid.uuid4(),
+        command_type="set-trip-express",
+        reason="Mark the characterized trip as express in a child revision.",
+        trip_sequence_no=1,
+        is_express=True,
+    )
+    assert request.command_type == "set-trip-express"
+    assert request.trip_sequence_no == 1
+    assert request.is_express is True
+
+    with pytest.raises(ValidationError):
+        SetTripExpressRequest(
+            client_command_id=uuid.uuid4(),
+            command_type="assign-trip-block",
+            reason="Uncharacterized block mutation must not cross the typed boundary.",
+            trip_sequence_no=1,
+            is_express=True,
         )
 
 
