@@ -1,6 +1,7 @@
 from .audit_models import AuditEvent
 from .base import Base
 from .database import check_database, get_engine, get_session_factory
+from .edit_models import PlanEditCommand
 from .jobs import ComputationJob
 from .models import (
     AppUser,
@@ -39,6 +40,7 @@ __all__ = [
     "ObservedTripObservation",
     "Organization",
     "OrganizationMembership",
+    "PlanEditCommand",
     "PlanRevision",
     "PlannedTrip",
     "PlanningProject",
