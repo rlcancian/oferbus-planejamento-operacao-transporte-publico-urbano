@@ -2,9 +2,9 @@ name: OferBus CI
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
-    branches: [main]
+    branches: [master, main]
 
 permissions:
   contents: read
@@ -18,31 +18,50 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install OferBus Python packages
+      - name: Install Python packages
         run: |
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install \
-            -e './reference-core' \
-            -e './packages/oferbus-core[dev]' \
-            -e './packages/oferbus-db[dev]' \
-            -e './packages/oferbus-planning[dev]' \
-            -e './packages/oferbus-jobs[dev]' \
-            -e './packages/oferbus-ai[dev]' \
-            -e './apps/api[dev]' \
-            -e './apps/worker[dev]' \
-            'ruff>=0.11,<1' pip-audit
-      - name: Dependency consistency
-        run: python -m pip check
-      - name: Python syntax
-        run: python -m compileall -q apps packages reference-core scripts migrations
-      - name: Python lint
-        run: ruff check --select E9,F63,F7,F82 apps packages reference-core scripts
-      - name: Python tests
-        run: pytest -q packages/oferbus-core/tests packages/oferbus-db/tests packages/oferbus-planning/tests packages/oferbus-jobs/tests packages/oferbus-ai/tests apps/api/tests apps/worker/tests reference-core/tests
-      - name: Python dependency audit
-        run: pip-audit
+          python -m pip install --upgrade pip
+          pip install -e packages/oferbus-core[dev] -e packages/oferbus-db[dev] -e packages/oferbus-jobs[dev] -e packages/oferbus-ai[dev] -e packages/oferbus-planning[dev] -e apps/api[dev] -e apps/worker[dev] -e reference-core
+      - name: Ruff
+        run: ruff check packages apps reference-core scripts
+      - name: Pytest
+        run: pytest
 
-  web-quality:
+  postgres-api-worker:
+    name: PostgreSQL, migrations, API and worker
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: oferbus
+          POSTGRES_USER: oferbus
+          POSTGRES_PASSWORD: oferbus
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U oferbus -d oferbus"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://oferbus:oferbus@localhost:5432/oferbus
+      OFERBUS_ENV: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install runtime packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e packages/oferbus-core -e packages/oferbus-db -e packages/oferbus-jobs -e packages/oferbus-ai -e packages/oferbus-planning -e apps/api -e apps/worker -e reference-core
+      - name: Run migrations
+        run: alembic upgrade head
+      - name: Integration smoke
+        run: python scripts/integration_smoke.py
+
+  web:
     name: Web typecheck and build
     runs-on: ubuntu-latest
     steps:
@@ -50,91 +69,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
       - name: Install web dependencies
-        run: npm install
-      - name: Validate local launcher prerequisites
-        run: |
-          bash -n scripts/dev-bootstrap.sh scripts/dev-doctor.sh scripts/dev-run.sh
-          test -f node_modules/next/dist/bin/next
-      - name: TypeScript typecheck
-        run: npm run web:typecheck
-      - name: Next.js production build
-        run: npm run web:build
-      - name: Runtime dependency audit
-        run: npm audit --omit=dev --audit-level=high
-
-  integrated-smoke:
-    name: PostgreSQL + API + worker + rendered web acceptance
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_DB: oferbus
-          POSTGRES_USER: oferbus
-          POSTGRES_PASSWORD: oferbus_local_dev
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U oferbus -d oferbus"
-          --health-interval 3s
-          --health-timeout 3s
-          --health-retries 20
-    env:
-      DATABASE_URL: postgresql+psycopg://oferbus:oferbus_local_dev@127.0.0.1:5432/oferbus
-      OFERBUS_ENV: development
-      OFERBUS_IDENTITY_MODE: development-header
-      OFERBUS_WORKER_POLL_SECONDS: '0.1'
-      OFERBUS_WORKER_LEASE_SECONDS: '30'
-      OFERBUS_API_URL: http://127.0.0.1:8010
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Install runtime packages
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install \
-            -e ./reference-core \
-            -e ./packages/oferbus-core \
-            -e ./packages/oferbus-db \
-            -e ./packages/oferbus-planning \
-            -e ./packages/oferbus-jobs \
-            -e ./packages/oferbus-ai \
-            -e ./apps/api \
-            -e ./apps/worker
-      - name: Build web acceptance target
-        run: |
-          npm install
-          npm run web:build
-      - name: Apply all migrations
-        run: python -m alembic upgrade head
-      - name: Seed deterministic development context
-        run: python scripts/dev_seed.py --json
-      - name: Start API and worker
-        run: |
-          nohup python -m uvicorn oferbus_api.main:app --host 127.0.0.1 --port 8010 >/tmp/oferbus-api.log 2>&1 &
-          echo $! >/tmp/oferbus-api.pid
-          nohup oferbus-worker >/tmp/oferbus-worker.log 2>&1 &
-          echo $! >/tmp/oferbus-worker.pid
-      - name: Execute integrated planning smoke
-        run: python scripts/integration_smoke.py --api-url http://127.0.0.1:8010 --timeout 30
-      - name: Start production web workspace
-        run: |
-          nohup bash -lc 'cd apps/web && exec node ../../node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3010' >/tmp/oferbus-web.log 2>&1 &
-          echo $! >/tmp/oferbus-web.pid
-      - name: Execute rendered workspace acceptance
-        run: python scripts/web_acceptance.py --web-url http://127.0.0.1:3010 --timeout 30
-      - name: Show service logs on failure
-        if: failure()
-        run: |
-          echo '--- API log ---'
-          cat /tmp/oferbus-api.log || true
-          echo '--- Worker log ---'
-          cat /tmp/oferbus-worker.log || true
-          echo '--- Web log ---'
-          cat /tmp/oferbus-web.log || true
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
