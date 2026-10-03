@@ -8,16 +8,16 @@ A arqueologia do sistema legado foi consolidada, o núcleo computacional de refe
 
 A **Phase A — Platform Foundation** está concluída e foi validada tanto no GitHub Actions quanto no notebook de desenvolvimento: PostgreSQL 18, migrations, seed, FastAPI, worker, Next.js e smoke integrado estão operacionais.
 
-A **Phase B — Core Planning Vertical Slice** também está concluída e validada ponta a ponta:
+A **Phase B — Core Planning Vertical Slice** também está concluída e validada ponta a ponta.
 
-- **B.1 — Production Planning Contracts and Reference Bridge:** concluída;
-- **B.2 — Planning Input Persistence and Application Boundary:** concluída;
-- **B.3 — Deterministic Planning Worker:** concluída;
-- **B.4 — Plan and Result Persistence:** concluída;
-- **B.5 — Web Planning Result Workspace:** concluída;
-- **B.6 — Integrated Acceptance and Regression Gate:** concluída.
+A **Phase C — March Diagram and Versioned Operational Editing** está em andamento:
 
-O próximo horizonte arquitetural é a **Phase C — March Diagram and Versioned Operational Editing**.
+- **C.1 — March Read Model and Read-only SVG Surface:** concluída;
+- **C.2 — Versioned Editing Domain and Persistence Boundary:** próxima;
+- **C.3 — Time Editing and Operational Conflict Validation:** pendente;
+- **C.4 — Trip and Block/Link Editing:** pendente;
+- **C.5 — Dependent Result Recalculation and Comparison:** pendente;
+- **C.6 — Undo/Redo, Audit, Acceptance and Density Gate:** pendente.
 
 ## Arquitetura aceita
 
@@ -28,7 +28,8 @@ O próximo horizonte arquitetural é a **Phase C — March Diagram and Versioned
 - SQLAlchemy + Alembic + psycopg na camada de persistência Python;
 - fila inicial de jobs apoiada em PostgreSQL, acessada por uma abstração `JobQueue`;
 - workers Python com lease, heartbeat, retry, idempotência e progresso por SSE;
-- SVG/D3 para engenharia 2D e Three.js/React Three Fiber para visualizações 3D quando agregarem valor;
+- SVG semântico como tecnologia inicial do Gráfico de Marcha 2D; Canvas permanece opção condicionada a benchmark de densidade;
+- Three.js/React Three Fiber reservado para visualizações 3D quando agregarem valor;
 - OferBus Copilot/Planning Agent como componente nativo, provider-neutral e sempre operando por ferramentas estruturadas, permissões e confirmações;
 - monólito modular, não microserviços prematuros.
 
@@ -51,13 +52,27 @@ ScenarioRevision
 → ResultSnapshot
 ```
 
-`PlanRevision` é separado de `ResultSnapshot` para permitir futuras revisões manuais sem sobrescrever o histórico computado. A ordem das viagens nos blocos é relacional, preparando a Phase C e o Gráfico de Marcha. O resultado persistido é reconstruído pelo `packages/oferbus-planning` e só é aceito se reproduzir exatamente o `output_fingerprint` calculado pelo `oferbus-core`.
+`PlanRevision` é separado de `ResultSnapshot` para permitir futuras revisões manuais sem sobrescrever o histórico computado. A ordem das viagens nos blocos é relacional. O resultado persistido é reconstruído pelo `packages/oferbus-planning` e só é aceito se reproduzir exatamente o `output_fingerprint` calculado pelo `oferbus-core`.
 
 A B.5 transformou a raiz do Next.js no primeiro workspace operacional do OferBus. O frontend consome somente a API autoritativa e apresenta contexto de projeto/cenário/linha, timetable, blocos de veículo, frota, demanda, ocupação, custos e provenance. Estados sem resultado ou com infraestrutura indisponível são exibidos explicitamente; nenhum dado é inventado no frontend.
 
 A B.6 fechou a fatia com golden master determinístico e um gate CI que executa planejamento real, persiste/reconstrói o resultado, inicia o Next.js em modo de produção e valida semanticamente o workspace renderizado.
 
-A API `0.9.0` expõe resultados verificados em:
+## Gráfico de Marcha
+
+A C.1 recuperou o Gráfico de Marcha como superfície real do workspace. A API `0.10.0` expõe um read model tenant-safe em:
+
+```text
+GET /plans/{plan_revision_id}/march
+```
+
+O read model inclui revisão/pai/origem, semantic layer, fingerprint, domínio temporal, sentidos, linha, terminais, horários reais/virtuais, tipo, expresso, bloco e nível de serviço.
+
+A interface renderiza um SVG semântico com eixo horizontal de tempo, trilhos de terminais e trajetórias das viagens. Horários virtuais distintos aparecem separadamente; blocos têm distinção visual; e cada viagem continua identificável por número, sentido e tooltip, sem depender apenas de cor.
+
+A C.1 é deliberadamente somente leitura. Nenhuma operação gráfica altera o plano computado. A C.2 introduzirá a fronteira de comandos e revisões manuais derivadas antes de qualquer drag-and-drop.
+
+A API também mantém:
 
 ```text
 GET /results/computations/{run_id}
@@ -89,7 +104,7 @@ make dev
 
 Abra `http://127.0.0.1:3010`.
 
-Se já existir um resultado persistido, a página inicial abre diretamente o workspace operacional. Caso contrário, o estado vazio indica que ainda é necessário executar `core-planning`.
+Se já existir um resultado persistido, a página inicial abre diretamente o workspace operacional, incluindo o Gráfico de Marcha C.1. Caso contrário, o estado vazio indica que ainda é necessário executar `core-planning`.
 
 Em outro terminal, com os serviços ativos:
 
@@ -97,12 +112,12 @@ Em outro terminal, com os serviços ativos:
 make smoke
 ```
 
-O smoke é repetível e inclui planejamento real, persistência relacional, reconstrução pelo mesmo output fingerprint e descoberta do resultado mais recente com contexto de projeto/cenário/linha.
+O smoke é repetível e inclui planejamento real, persistência relacional, reconstrução pelo mesmo output fingerprint, descoberta do resultado mais recente e validação do read model do Gráfico de Marcha.
 
 ## Estrutura
 
-- `apps/web/` — aplicação Next.js e workspace operacional;
-- `apps/api/` — API FastAPI;
+- `apps/web/` — aplicação Next.js, workspace operacional e Gráfico de Marcha SVG;
+- `apps/api/` — API FastAPI, incluindo resultados e read model da marcha;
 - `apps/worker/` — worker Python para computações longas e planejamento determinístico;
 - `packages/oferbus-ai/` — contratos de provider LLM e ferramentas estruturadas do Copilot;
 - `packages/oferbus-core/` — contratos e motor computacional de produção;
@@ -126,4 +141,4 @@ O smoke é repetível e inclui planejamento real, persistência relacional, reco
 - visual moderno e 3D complementam, mas não prejudicam, a precisão operacional;
 - qualquer edição operacional futura deriva uma nova `PlanRevision`; resultados computados históricos permanecem imutáveis.
 
-Consulte `docs/README.md` e `docs/architecture/OferBus_Phase_B_Core_Planning_Vertical_Slice_Plan_v0.1.md` para o estado técnico detalhado.
+Consulte `docs/README.md`, `docs/architecture/OferBus_Phase_B6_Integrated_Acceptance_and_Regression_v0.1.md` e `docs/architecture/OferBus_Phase_C_March_Diagram_and_Versioned_Editing_Plan_v0.1.md` para o estado técnico detalhado.
