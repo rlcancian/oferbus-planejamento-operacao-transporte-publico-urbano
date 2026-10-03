@@ -1,0 +1,23 @@
+[project]
+name = "oferbus-planning"
+version = "0.1.0"
+description = "OferBus planning application boundary"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "oferbus-core==0.1.0",
+  "oferbus-db==0.1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0,<10"]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

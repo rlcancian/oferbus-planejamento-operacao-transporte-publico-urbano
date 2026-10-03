@@ -1,0 +1,20 @@
+[project]
+name = "oferbus-db"
+version = "0.1.0"
+description = "OferBus 2026 PostgreSQL persistence package"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "SQLAlchemy==2.1.1",
+  "psycopg[binary]==3.3.6",
+  "alembic==1.20.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0,<10"]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

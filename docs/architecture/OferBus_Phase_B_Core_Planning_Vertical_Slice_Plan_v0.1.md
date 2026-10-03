@@ -1,0 +1,168 @@
+# OferBus — Phase B Core Planning Vertical Slice Plan v0.1
+
+**Status:** CONCLUÍDA  
+**Date:** 2026-10-02
+
+## Goal
+
+Deliver the first truthful end-to-end OferBus planning workflow on top of the accepted Phase A platform foundation:
+
+```text
+line + observed trips + planning specification
+→ immutable scenario revision
+→ computation run
+→ minimum timetable
+→ operational trips / links
+→ vehicle blocks / effective fleet
+→ occupancy / metrics / cost
+→ persisted result
+→ web result workspace
+```
+
+Phase B does not attempt to port every legacy routine at once. It promotes characterized behavior in controlled increments, keeping `reference-core` as archaeological evidence and making every production contract explicit about units, semantic layer and provenance.
+
+## B.1 — production planning contracts and reference bridge — CONCLUÍDA
+
+Materialized:
+
+- first installable `packages/oferbus-core` production package;
+- stable typed planning input/output contracts;
+- explicit service-minute, passenger, kilometre and cost units in field names/documentation;
+- semantic layer selection (`legacy-exact`, `normalized`, `modern`);
+- deterministic canonical SHA-256 input/output fingerprints;
+- validation of direction curves, observation windows, capacities, vehicle parameters and costs;
+- explicitly temporary `ReferencePlanningAdapter` executing only characterized `reference-core` routines;
+- production boundary remains independent of database, HTTP, worker and UI;
+- parity tests against the existing single-direction end-to-end reference fixture;
+- CI and local bootstrap include `oferbus-core`.
+
+The bridge currently exercises minimum timetable → operational trip attributes → basic link graph → vehicle blocks/effective fleet → service levels → occupancy → metrics/cost. `modern` deliberately remains unavailable rather than being faked.
+
+For `legacy-exact`, the bridge preserves characterized historical behavior supported by the reference harness. For `normalized`, it currently applies explicit characterized corrections for return-passenger replay, express-trip occupancy semantics and direction-weighted distance metrics.
+
+The adapter is a controlled bridge, not a declaration that the archaeological package is production code. Individual algorithms are promoted behind the same contracts in later phases.
+
+## B.2 — planning input persistence and application boundary — CONCLUÍDA
+
+Materialized:
+
+- migration `0004_planning_inputs`;
+- reusable observed-trip datasets with immutable numbered revisions and content fingerprints;
+- observed trips persisted per line direction;
+- scenario-level planning snapshot for semantic layer, vehicle, costs and planning specification;
+- per-direction snapshot for dataset revision, service window, curves, extension and storage semantics;
+- shared `packages/oferbus-planning` application layer independent of FastAPI;
+- creation of datasets and later immutable dataset revisions;
+- creation of immutable planning `ScenarioRevision` records with canonical `PlanningInput` fingerprints;
+- round-trip reconstruction that recalculates and verifies the fingerprint before returning an input;
+- tenant-aware commands and composite foreign keys;
+- authenticated `/planning` API endpoints;
+- deterministic development fixture derived from the characterized single-direction example;
+- integrated PostgreSQL/API smoke validating the persisted planning input.
+
+Detailed design: `architecture/OferBus_Phase_B2_Planning_Input_Persistence_v0.1.md`.
+
+## B.3 — deterministic planning worker — CONCLUÍDA
+
+Materialized:
+
+- `run_kind=core-planning` in the asynchronous worker;
+- API submission derived from the immutable `ScenarioRevision`, not from ad-hoc scientific payloads;
+- `input_fingerprint` captured at enqueue and verified again by the worker;
+- semantic layer derived from the persisted snapshot and rechecked at execution;
+- engine descriptor/version compatibility check between queued run and worker;
+- execution through `ReferencePlanningAdapter` / `oferbus-core`;
+- progress/heartbeat boundaries for load/verify, compute and finalize;
+- deterministic domain/input failures marked non-retryable;
+- unexpected infrastructure failures remain eligible for bounded retry;
+- `output_fingerprint` persisted on successful `ComputationRun`;
+- strict idempotency compatibility checks for scenario, run kind, semantic layer, engine, fingerprints and payload;
+- integrated PostgreSQL/API/worker smoke executing the real planning fixture end to end.
+
+Detailed design: `architecture/OferBus_Phase_B3_Deterministic_Planning_Worker_v0.1.md`.
+
+## B.4 — plan and result persistence — CONCLUÍDA
+
+Materialized:
+
+- migration `0005_planning_results`;
+- immutable `PlanRevision` lineage separated from derived `ResultSnapshot` metrics;
+- relational `PlannedTrip` rows preserving real/virtual service times, trip type, express semantics, vehicle block and service level;
+- `VehicleBlock` and ordered `VehicleBlockTrip` persistence designed for later March Diagram editing;
+- complete persistence of the current `PlanningMetricsResult` contract;
+- canonical result fingerprint calculation centralized in `oferbus-core`;
+- transactional `persist_planning_result(...)` with exact provenance/fingerprint checks;
+- `load_planning_result(...)` reconstructs a complete `PlanningResult` and recalculates the original output fingerprint;
+- idempotent materialization by `ComputationRun`, including recovery when persistence commits before `queue.succeed`;
+- API `GET /results/computations/{run_id}` guarded by `result:read`;
+- integrated PostgreSQL smoke proving computation → relational persistence → API read → exact fingerprint reconstruction.
+
+The schema deliberately separates `PlanRevision` from `ResultSnapshot`: future manual timetable edits create derived plan revisions rather than overwriting computed history. Core `float` metrics are persisted as PostgreSQL double precision so the current computational contract is not silently quantized.
+
+Detailed design: `architecture/OferBus_Phase_B4_Plan_Result_Persistence_v0.1.md`.
+
+## B.5 — web planning result workspace — CONCLUÍDA
+
+Materialized:
+
+- API `GET /results/latest`, tenant-scoped and protected by `result:read`;
+- result context with project, scenario, scenario revision and exact lines represented by the planning snapshot;
+- server-side Next.js API client with development-only seed identity fallback and production-safe behavior;
+- root OferBus screen converted from the Phase A landing into the first operational planning workspace;
+- compact project/scenario/line heading with semantic layer and integrity state;
+- high-value operational ribbon for fleet, trips, passengers, distance, occupancy and daily cost;
+- timetable with real/virtual service times, direction, trip semantics, vehicle block and service level;
+- vehicle-block view with ordered trip sequence and operating window;
+- detailed operation, demand and cost indicators;
+- provenance surface with engine, semantic layer, fingerprints and technical notes;
+- explicit empty/unavailable states instead of invented demo data;
+- responsive workstation/control-room visual language with reduced-motion support;
+- CI coverage for strict TypeScript, Next build and authenticated `/results/latest` context against PostgreSQL.
+
+The block view is deliberately a precise read-only preparation for the Phase C March Diagram; B.5 does not fake the future interactive editor.
+
+Detailed design: `architecture/OferBus_Phase_B5_Web_Planning_Result_Workspace_v0.1.md`.
+
+## B.6 — integrated acceptance and regression gate — CONCLUÍDA
+
+Materialized:
+
+- repeatable integration smoke with a fresh idempotency key per execution;
+- stable context assertions based on deterministic entity identifiers rather than mutable seed display labels;
+- normalized golden-master regression for the promoted Phase B fixture;
+- pinned input/output fingerprints and characterized trip/fleet/passenger/distance/cost outputs;
+- CI integration job that builds and starts Next.js in production mode after real planning execution;
+- `scripts/web_acceptance.py` validating the rendered workspace against stable operational semantics;
+- explicit rejection of empty/error workspace states during CI acceptance;
+- local notebook acceptance with PostgreSQL 18, API, worker, repeatable smoke and browser inspection of the computed workspace.
+
+The CI path now proves:
+
+```text
+seed input
+→ immutable scenario revision
+→ submit core-planning
+→ worker succeeds
+→ result lineage persists
+→ API reconstructs exact result
+→ production Next.js renders the result
+```
+
+Detailed design: `architecture/OferBus_Phase_B6_Integrated_Acceptance_and_Regression_v0.1.md`.
+
+## Guardrails
+
+- Do not silently copy known candidate defects into `normalized`.
+- `legacy-exact` may preserve a defect only when explicitly characterized and named.
+- Express/deadhead operational movements carry zero passengers in normalized semantics.
+- Operational times are integer service minutes, not wall-clock `TIME` columns.
+- The computational core must remain independent of PostgreSQL, FastAPI and React.
+- AI may explain/orchestrate the workflow later, but deterministic core code remains authoritative for calculations.
+- No planning-domain capability may be advertised in the Copilot before the corresponding deterministic command is implemented.
+- A golden-master change requires an explicit semantic/model explanation; it must not be updated merely to make CI green.
+
+## Phase B exit criteria — ATENDIDOS
+
+Phase B is complete: a planner can create/load a one-line study, submit an immutable scenario revision, run deterministic planning asynchronously, persist the resulting timetable/fleet/occupancy/metrics lineage, inspect it in the browser, and reproduce/verify the run from exact inputs, engine metadata and fingerprints.
+
+The next architecture phase is **Phase C — March Diagram and Versioned Operational Editing**. Any Phase C edit must derive a new `PlanRevision` rather than mutate the immutable computed plan in place.
