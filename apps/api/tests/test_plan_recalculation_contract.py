@@ -1,11 +1,9 @@
-from fastapi.routing import APIRoute
-
 from oferbus_api.main import app
 from oferbus_api.recalculation import PlanRevisionComparisonResponse, ResultFreshnessResponse
 
 
 def test_phase_c5_routes_are_exposed() -> None:
-    paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
+    paths = {route.path for route in app.routes}
     assert "/plans/{plan_revision_id}/result-status" in paths
     assert "/plans/{plan_revision_id}/compare-parent" in paths
 
