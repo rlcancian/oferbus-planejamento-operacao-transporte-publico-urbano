@@ -1,20 +1,14 @@
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from oferbus_db import (
-    PlanEditCommand,
-    PlanRevision,
-    PlannedTrip,
-    ScenarioRevision,
-    VehicleBlock,
-    VehicleBlockTrip,
-)
+from oferbus_db import PlanEditCommand, PlanRevision, PlannedTrip, ScenarioRevision, VehicleBlock, VehicleBlockTrip
 
 from .audit import record_audit_event
 from .identity import Permission, Principal, database_session, require_permission
@@ -22,8 +16,19 @@ from .identity import Permission, Principal, database_session, require_permissio
 
 class ForkPlanRequest(BaseModel):
     client_command_id: uuid.UUID
-    command_type: str = Field(pattern="^fork$")
+    command_type: Literal["fork"]
     reason: str = Field(min_length=3, max_length=2000)
+
+
+class MoveTripRequest(BaseModel):
+    client_command_id: uuid.UUID
+    command_type: Literal["move-trip"]
+    reason: str = Field(min_length=3, max_length=2000)
+    trip_sequence_no: int = Field(gt=0)
+    departure_service_minute: int = Field(ge=0)
+
+
+PlanEditRequest = ForkPlanRequest | MoveTripRequest
 
 
 class PlanEditResponse(BaseModel):
@@ -51,45 +56,7 @@ def _response(command: PlanEditCommand, revision_no: int) -> PlanEditResponse:
     )
 
 
-@router.post("/{plan_revision_id}/edits", response_model=PlanEditResponse, status_code=status.HTTP_201_CREATED)
-def fork_plan_revision(
-    plan_revision_id: uuid.UUID,
-    request: ForkPlanRequest,
-    principal: Principal = Depends(require_permission(Permission.PLAN_EDIT)),
-    session: Session = Depends(database_session),
-) -> PlanEditResponse:
-    """Create an immutable manual child revision before applying semantic edits.
-
-    C.2 deliberately supports only the typed ``fork`` command. Later C phases add
-    domain mutations; accepting arbitrary JSON operations here would bypass the
-    semantic and validation boundary.
-    """
-    existing = session.execute(
-        select(PlanEditCommand).where(
-            PlanEditCommand.organization_id == principal.organization_id,
-            PlanEditCommand.client_command_id == request.client_command_id,
-        )
-    ).scalar_one_or_none()
-    if existing is not None:
-        derived_no = session.execute(
-            select(PlanRevision.revision_no).where(
-                PlanRevision.organization_id == principal.organization_id,
-                PlanRevision.id == existing.derived_plan_revision_id,
-            )
-        ).scalar_one()
-        return _response(existing, derived_no)
-
-    parent = session.execute(
-        select(PlanRevision).where(
-            PlanRevision.organization_id == principal.organization_id,
-            PlanRevision.id == plan_revision_id,
-        )
-    ).scalar_one_or_none()
-    if parent is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="plan revision not found")
-
-    # Serializes revision-number allocation for this scenario without locking
-    # unrelated tenants/scenarios.
+def _clone_parent(session: Session, principal: Principal, parent: PlanRevision) -> tuple[PlanRevision, int]:
     scenario = session.execute(
         select(ScenarioRevision).where(
             ScenarioRevision.organization_id == principal.organization_id,
@@ -102,7 +69,6 @@ def fork_plan_revision(
             PlanRevision.scenario_revision_id == scenario.id,
         )
     ).scalar_one()
-
     child = PlanRevision(
         organization_id=principal.organization_id,
         scenario_revision_id=parent.scenario_revision_id,
@@ -177,14 +143,103 @@ def fork_plan_revision(
             position_no=link.position_no,
             planned_trip_id=trip_id_map[link.planned_trip_id],
         ))
+    session.flush()
+    return child, next_revision_no
+
+
+def _validate_and_refresh_blocks(session: Session, principal: Principal, child: PlanRevision) -> None:
+    blocks = session.execute(
+        select(VehicleBlock).where(
+            VehicleBlock.organization_id == principal.organization_id,
+            VehicleBlock.plan_revision_id == child.id,
+        ).order_by(VehicleBlock.block_no)
+    ).scalars().all()
+    for block in blocks:
+        links = session.execute(
+            select(VehicleBlockTrip).where(
+                VehicleBlockTrip.organization_id == principal.organization_id,
+                VehicleBlockTrip.plan_revision_id == child.id,
+                VehicleBlockTrip.block_no == block.block_no,
+            ).order_by(VehicleBlockTrip.position_no)
+        ).scalars().all()
+        trips = [session.get(PlannedTrip, link.planned_trip_id) for link in links]
+        if any(trip is None for trip in trips):
+            raise HTTPException(status_code=409, detail={"code": "vehicle-block-trip-missing"})
+        for previous, current in zip(trips, trips[1:]):
+            if current.departure_service_minute < previous.arrival_service_minute:
+                raise HTTPException(status_code=409, detail={"code": "vehicle-block-time-conflict", "block_no": block.block_no})
+        block.trip_count = len(trips)
+        block.first_departure_service_minute = trips[0].departure_service_minute if trips else None
+        block.last_arrival_service_minute = trips[-1].arrival_service_minute if trips else None
+
+
+@router.post("/{plan_revision_id}/edits", response_model=PlanEditResponse, status_code=status.HTTP_201_CREATED)
+def edit_plan_revision(
+    plan_revision_id: uuid.UUID,
+    request: PlanEditRequest,
+    principal: Principal = Depends(require_permission(Permission.PLAN_EDIT)),
+    session: Session = Depends(database_session),
+) -> PlanEditResponse:
+    """Apply one typed command by creating an immutable manual child revision."""
+    existing = session.execute(
+        select(PlanEditCommand).where(
+            PlanEditCommand.organization_id == principal.organization_id,
+            PlanEditCommand.client_command_id == request.client_command_id,
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        derived_no = session.execute(
+            select(PlanRevision.revision_no).where(
+                PlanRevision.organization_id == principal.organization_id,
+                PlanRevision.id == existing.derived_plan_revision_id,
+            )
+        ).scalar_one()
+        return _response(existing, derived_no)
+
+    parent = session.execute(
+        select(PlanRevision).where(
+            PlanRevision.organization_id == principal.organization_id,
+            PlanRevision.id == plan_revision_id,
+        )
+    ).scalar_one_or_none()
+    if parent is None:
+        raise HTTPException(status_code=404, detail="plan revision not found")
+
+    child, next_revision_no = _clone_parent(session, principal, parent)
+    payload: dict[str, object] = {}
+    event_type = "plan.revision.forked"
+
+    if isinstance(request, MoveTripRequest):
+        trip = session.execute(
+            select(PlannedTrip).where(
+                PlannedTrip.organization_id == principal.organization_id,
+                PlannedTrip.plan_revision_id == child.id,
+                PlannedTrip.sequence_no == request.trip_sequence_no,
+            )
+        ).scalar_one_or_none()
+        if trip is None:
+            raise HTTPException(status_code=404, detail="trip not found")
+        delta = request.departure_service_minute - trip.departure_service_minute
+        moved = (
+            request.departure_service_minute,
+            trip.arrival_service_minute + delta,
+            trip.virtual_departure_service_minute + delta,
+            trip.virtual_arrival_service_minute + delta,
+        )
+        if min(moved) < 0:
+            raise HTTPException(status_code=422, detail={"code": "negative-service-minute"})
+        trip.departure_service_minute, trip.arrival_service_minute, trip.virtual_departure_service_minute, trip.virtual_arrival_service_minute = moved
+        _validate_and_refresh_blocks(session, principal, child)
+        payload = {"trip_sequence_no": request.trip_sequence_no, "departure_service_minute": request.departure_service_minute, "delta_minutes": delta}
+        event_type = "plan.trip.moved"
 
     command = PlanEditCommand(
         organization_id=principal.organization_id,
         client_command_id=request.client_command_id,
         parent_plan_revision_id=parent.id,
         derived_plan_revision_id=child.id,
-        command_type="fork",
-        payload={},
+        command_type=request.command_type,
+        payload=payload,
         reason=request.reason,
         created_by=principal.user_id,
     )
@@ -192,16 +247,11 @@ def fork_plan_revision(
     record_audit_event(
         session,
         principal,
-        event_type="plan.revision.forked",
+        event_type=event_type,
         entity_type="plan_revision",
         entity_id=child.id,
         correlation_id=str(request.client_command_id),
-        details={
-            "parent_plan_revision_id": str(parent.id),
-            "derived_revision_no": next_revision_no,
-            "command_type": "fork",
-            "reason": request.reason,
-        },
+        details={"parent_plan_revision_id": str(parent.id), "derived_revision_no": next_revision_no, "command_type": request.command_type, "reason": request.reason, **payload},
     )
     session.commit()
     return _response(command, next_revision_no)
