@@ -138,6 +138,8 @@ jobs:
         run: python scripts/web_acceptance.py --web-url http://127.0.0.1:3010 --timeout 30
       - name: Execute Chromium interaction acceptance
         run: node scripts/browser_interaction_acceptance.mjs
+      - name: Execute Chromium March density acceptance
+        run: node scripts/browser_density_acceptance.mjs
       - name: Show service logs on failure
         if: failure()
         run: |
