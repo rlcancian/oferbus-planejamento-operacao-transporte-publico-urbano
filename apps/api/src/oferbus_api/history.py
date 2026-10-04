@@ -52,7 +52,7 @@ def _entry(session: Session, principal: Principal, revision: PlanRevision) -> Re
 @router.get("/{plan_revision_id}/history", response_model=RevisionHistoryResponse)
 def revision_history(
     plan_revision_id: uuid.UUID,
-    principal: Principal = Depends(require_permission(Permission.PLAN_READ)),
+    principal: Principal = Depends(require_permission(Permission.RESULT_READ)),
     session: Session = Depends(database_session),
 ) -> RevisionHistoryResponse:
     """Return safe undo ancestry and explicit redo branches without mutating history."""
