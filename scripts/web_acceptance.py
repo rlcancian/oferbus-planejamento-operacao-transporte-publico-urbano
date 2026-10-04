@@ -40,7 +40,6 @@ def visible_text(document: str) -> str:
 def fetch_html(url: str, timeout: float) -> str:
     deadline = time.monotonic() + timeout
     last_error: Exception | None = None
-
     while time.monotonic() < deadline:
         try:
             request = urllib.request.Request(url, headers={"Accept": "text/html"})
@@ -52,7 +51,6 @@ def fetch_html(url: str, timeout: float) -> str:
         except (urllib.error.URLError, TimeoutError, RuntimeError) as exc:
             last_error = exc
             time.sleep(0.5)
-
     raise RuntimeError(f"web workspace did not become available at {url}: {last_error}")
 
 
@@ -61,7 +59,6 @@ def main() -> None:
     parser.add_argument("--web-url", default="http://127.0.0.1:3010")
     parser.add_argument("--timeout", type=float, default=30.0)
     args = parser.parse_args()
-
     url = args.web_url.rstrip("/") + "/"
     document = fetch_html(url, args.timeout)
     text = visible_text(document)
@@ -72,7 +69,7 @@ def main() -> None:
         "Plano computado",
         "Normalizado",
         "Gráfico de Marcha",
-        "somente leitura · C.1",
+        "seleção sincronizada · C.6",
         "Terminal Origem",
         "Terminal Destino",
         "Horários planejados",
@@ -83,31 +80,13 @@ def main() -> None:
         "O resultado ainda não pode ser carregado.",
         "Ainda não há um plano calculado.",
         "Gráfico de Marcha indisponível",
+        "somente leitura · C.1",
     ]
-
     missing = [item for item in expected if item not in text]
     present_forbidden = [item for item in forbidden if item in text]
-
     if missing or present_forbidden:
-        raise AssertionError(
-            {
-                "missing": missing,
-                "unexpected_empty_or_error_states": present_forbidden,
-                "document_excerpt": text[:2200],
-            }
-        )
-
-    print(
-        json.dumps(
-            {
-                "status": "pass",
-                "web_url": url,
-                "assertions": expected,
-            },
-            ensure_ascii=False,
-            sort_keys=True,
-        )
-    )
+        raise AssertionError({"missing": missing, "unexpected_empty_or_error_states": present_forbidden, "document_excerpt": text[:2200]})
+    print(json.dumps({"status": "pass", "web_url": url, "assertions": expected}, ensure_ascii=False, sort_keys=True))
 
 
 if __name__ == "__main__":
