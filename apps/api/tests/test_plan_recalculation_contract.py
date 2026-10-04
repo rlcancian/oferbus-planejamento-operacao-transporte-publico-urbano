@@ -1,5 +1,3 @@
-from fastapi.routing import APIRoute
-
 from oferbus_api.main import app
 from oferbus_api.recalculation import PlanRevisionComparisonResponse, ResultFreshnessResponse, router as recalculation_router
 
@@ -9,7 +7,10 @@ def test_phase_c5_routes_are_exposed() -> None:
     assert "/plans/{plan_revision_id}/result-status" in router_paths
     assert "/plans/{plan_revision_id}/compare-parent" in router_paths
 
-    app_paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
+    # FastAPI 0.142 may retain included routers as internal wrapper objects in
+    # app.routes.  The generated OpenAPI document is the stable application
+    # contract and proves that the mounted endpoints are externally exposed.
+    app_paths = set(app.openapi()["paths"])
     assert "/plans/{plan_revision_id}/result-status" in app_paths
     assert "/plans/{plan_revision_id}/compare-parent" in app_paths
 
