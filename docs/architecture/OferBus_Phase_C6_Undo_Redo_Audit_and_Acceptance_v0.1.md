@@ -7,40 +7,28 @@
 
 Phase C.5 is complete on the canonical default branch. C.6 is the active subphase.
 
-This checkpoint materializes the first C.6 safeguards without declaring the subphase complete.
-
 ## Revision navigation
 
-Undo/redo is non-destructive. `GET /plans/{plan_revision_id}/history` returns:
-
-- the explicit ancestor chain for undo navigation;
-- explicit child revisions as redo candidates;
-- command type, reason and author where the revision was produced by a persisted edit command.
-
-No historical `PlanRevision` is mutated. A branch point may have multiple redo candidates; the API exposes them explicitly rather than guessing which branch the planner intended.
+Undo/redo is non-destructive. `GET /plans/{plan_revision_id}/history` returns the explicit ancestor chain for undo navigation and explicit child revisions as redo candidates, including persisted command type, reason and author where available. No historical `PlanRevision` is mutated. Branch points expose all redo candidates rather than guessing planner intent.
 
 ## Persistence correction discovered during C.6
 
-Inspection found a real schema/model mismatch: the API had already promoted typed `move-trip` and `set-trip-express` commands, while the PostgreSQL check constraint and ORM metadata still admitted only `fork`.
+Migration `0007_plan_edit_command_types` and ORM metadata admit exactly the characterized command set: `fork`, `move-trip`, and `set-trip-express`. No uncharacterized generic patch or legacy link-building command is admitted.
 
-Migration `0007_plan_edit_command_types` and the ORM constraint now admit exactly the characterized command set:
+## Interaction checkpoint
 
-- `fork`;
-- `move-trip`;
-- `set-trip-express`.
+The March SVG now exposes each trip trajectory as a keyboard-focusable interaction target with an accessible trip description and Enter/Space activation contract. Focus and selected-state styling are explicit, and the rendered acceptance contract has been advanced from the obsolete C.1 read-only marker to the C.6 interaction surface.
 
-No uncharacterized generic patch or legacy link-building command is admitted.
+This is only the interaction primitive. Cross-selection with timetable and vehicle blocks is **not yet claimed complete**; the parent workspace still has to own and propagate the shared selected-trip state. Browser-level event automation also remains pending.
 
 ## Density gate
 
-`scripts/march_density_benchmark.mjs` compares deterministic SVG serialization cost with Canvas command-preparation cost at 250, 1000 and 5000 trips. CI fails if the 1000-trip SVG serialization median exceeds 100 ms.
-
-The Canvas number is deliberately a command-preparation signal, not a browser rasterization/FPS claim. A browser-level benchmark remains necessary before any rendering-technology migration decision.
+`scripts/march_density_benchmark.mjs` compares deterministic SVG serialization cost with Canvas command-preparation cost at 250, 1000 and 5000 trips. CI fails if the 1000-trip SVG serialization median exceeds 100 ms. This is not a browser rasterization/FPS claim; browser-level evidence remains necessary before a rendering-technology migration decision.
 
 ## Remaining before C.6 can be concluded
 
-- expert keyboard workflow on the rendered March surface;
-- cross-selection among timetable, vehicle blocks and March Diagram;
+- shared selected-trip state and cross-selection among timetable, vehicle blocks and March Diagram;
+- expert workspace keyboard navigation beyond per-trip Enter/Space activation;
 - browser interaction coverage for critical edit/history flows;
 - conflict/warning rendered acceptance;
 - browser-level SVG/Canvas density evidence or an explicit documented limitation of the synthetic gate;
