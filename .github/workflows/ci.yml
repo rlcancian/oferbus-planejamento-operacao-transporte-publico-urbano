@@ -89,6 +89,7 @@ jobs:
       OFERBUS_WORKER_POLL_SECONDS: '0.1'
       OFERBUS_WORKER_LEASE_SECONDS: '30'
       OFERBUS_API_URL: http://127.0.0.1:8010
+      OFERBUS_WEB_URL: http://127.0.0.1:3010
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -113,6 +114,10 @@ jobs:
         run: |
           npm install
           npm run web:build
+      - name: Install browser acceptance runtime
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
       - name: Apply all migrations
         run: python -m alembic upgrade head
       - name: Seed deterministic development context
@@ -131,6 +136,8 @@ jobs:
           echo $! >/tmp/oferbus-web.pid
       - name: Execute rendered workspace acceptance
         run: python scripts/web_acceptance.py --web-url http://127.0.0.1:3010 --timeout 30
+      - name: Execute Chromium interaction acceptance
+        run: node scripts/browser_interaction_acceptance.mjs
       - name: Show service logs on failure
         if: failure()
         run: |
