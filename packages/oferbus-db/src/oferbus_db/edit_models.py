@@ -32,7 +32,10 @@ class PlanEditCommand(Base):
         UniqueConstraint("organization_id", "id", name="uq_plan_edit_command_org_id"),
         UniqueConstraint("organization_id", "client_command_id", name="uq_plan_edit_command_client_id"),
         UniqueConstraint("derived_plan_revision_id", name="uq_plan_edit_command_derived_revision"),
-        CheckConstraint("command_type IN ('fork')", name="plan_edit_command_type_valid"),
+        CheckConstraint(
+            "command_type IN ('fork', 'move-trip', 'set-trip-express')",
+            name="plan_edit_command_type_valid",
+        ),
         ForeignKeyConstraint(
             ["organization_id", "parent_plan_revision_id"],
             ["oferbus.plan_revision.organization_id", "oferbus.plan_revision.id"],
