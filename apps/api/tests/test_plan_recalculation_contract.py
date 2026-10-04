@@ -1,12 +1,17 @@
+from fastapi.routing import APIRoute
+
 from oferbus_api.main import app
 from oferbus_api.recalculation import PlanRevisionComparisonResponse, ResultFreshnessResponse, router as recalculation_router
 
 
 def test_phase_c5_routes_are_exposed() -> None:
-    paths = {route.path for route in recalculation_router.routes}
-    assert "/plans/{plan_revision_id}/result-status" in paths
-    assert "/plans/{plan_revision_id}/compare-parent" in paths
-    assert any(route is recalculation_router for route in app.routes)
+    router_paths = {route.path for route in recalculation_router.routes}
+    assert "/plans/{plan_revision_id}/result-status" in router_paths
+    assert "/plans/{plan_revision_id}/compare-parent" in router_paths
+
+    app_paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
+    assert "/plans/{plan_revision_id}/result-status" in app_paths
+    assert "/plans/{plan_revision_id}/compare-parent" in app_paths
 
 
 def test_needs_recalculation_is_explicit_and_parent_result_is_stale() -> None:
