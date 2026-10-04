@@ -43,7 +43,7 @@ jobs:
         run: pip-audit
 
   web-quality:
-    name: Web typecheck and build
+    name: Web typecheck, build and density gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,6 +60,8 @@ jobs:
         run: npm run web:typecheck
       - name: Next.js production build
         run: npm run web:build
+      - name: March SVG Canvas density benchmark
+        run: node scripts/march_density_benchmark.mjs
       - name: Runtime dependency audit
         run: npm audit --omit=dev --audit-level=high
 
