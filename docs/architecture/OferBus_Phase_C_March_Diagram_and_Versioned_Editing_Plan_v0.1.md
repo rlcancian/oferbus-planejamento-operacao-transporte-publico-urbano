@@ -1,7 +1,7 @@
 # OferBus — Phase C March Diagram and Versioned Operational Editing Plan v0.1
 
-**Status:** EM ANDAMENTO  
-**Date:** 2026-10-02
+**Status:** EM ANDAMENTO — C.1–C.5 concluídas; C.6 em andamento  
+**Date:** 2026-10-04
 
 ## Goal
 
@@ -56,73 +56,66 @@ Materialized:
 
 The current persisted trip contract identifies directions by `direction_key`. C.1 therefore rejects a scenario where the same key is ambiguous across multiple lines. A later multi-line promotion must persist an explicit line/direction identifier on planned trips rather than infer it in the UI.
 
-C.1 is deliberately read-only. No drag operation mutates data until the command/versioning boundary exists.
+## C.2 — Versioned editing domain and persistence boundary — CONCLUÍDA
 
-## C.2 — Versioned editing domain and persistence boundary — PRÓXIMA
+Materialized and integrated on the default branch:
 
-Introduce the explicit manual-revision command model and persistence required for derived plans.
-
-Expected scope:
-
-- manual revision author/reason metadata;
-- edit-operation journal with typed command payloads;
-- transactional clone/materialization from parent revision;
-- monotonic revision numbering under concurrency;
-- tenant-safe parent lineage validation;
+- explicit manual revision author/reason metadata;
+- typed edit-operation journal;
+- transactional parent-to-child revision materialization;
+- monotonic revision numbering and tenant-safe lineage validation;
 - audit events for edit commands;
-- API commands returning a new revision rather than mutating the parent.
+- command API returning derived revisions instead of mutating historical plans.
 
-## C.3 — Time editing and operational conflict validation — PENDENTE
+## C.3 — Time editing and operational conflict validation — CONCLUÍDA
 
-Implement the first mutation visible in the March Diagram: moving a trip in service time.
+Materialized and integrated:
 
-Expected scope:
+- typed `move-trip` command over integer service minutes;
+- preservation of trip duration unless explicitly changed by another characterized operation;
+- operational conflict validation and explicit conflict reporting;
+- derived immutable `PlanRevision` creation through the same command/versioning boundary.
 
-- change departure time command;
-- preserve travel-time relationship unless an explicit command changes it;
-- immediate validation for ordering, overlap and block feasibility;
-- preview/confirmation boundary;
-- derived `PlanRevision` creation;
-- UI selection, keyboard adjustment and drag interaction mapped to the same command.
+## C.4 — Trip and block/link editing — CONCLUÍDA NO ESCOPO CARACTERIZADO
 
-## C.4 — Trip and block/link editing — PENDENTE
+Materialized and integrated only where semantics are sufficiently characterized:
 
-Promote the remaining central March Diagram operations:
+- typed express/type editing and vehicle-block reassignment boundaries;
+- persistence support for the promoted command types;
+- no invented `Cria_1` / `Cria_2` legacy link semantics.
 
-- create trip;
-- remove trip;
-- change trip type / express semantics;
-- move trip between vehicle blocks;
-- change block ordering / operational links;
-- expose effects on effective fleet and incompatible chains.
+Creation/removal or link-building behavior whose legacy meaning remains uncharacterized is intentionally not fabricated and remains outside the promoted semantic surface.
 
-Any legacy link-building behavior must be promoted only after characterization. C.4 must not invent unverified `Cria_1` / `Cria_2` semantics.
+## C.5 — Dependent result recalculation and comparison — CONCLUÍDA
 
-## C.5 — Dependent result recalculation and comparison — PENDENTE
+Materialized and integrated:
 
-After a manual plan edit, recompute the dependent result snapshot without replacing the edited plan.
+- explicit dependent-result recalculation boundary;
+- parent→child comparison;
+- stale/needs-recalculation representation where a dependent model is not promoted;
+- result lineage associated with immutable plan revisions;
+- final default-branch CI checkpoint `aa82bfa50c9117c56dfcb90546fe4a799d0befa8` passed all OferBus CI gates.
 
-Expected scope:
+## C.6 — Undo/redo, audit, acceptance and density gate — EM ANDAMENTO
 
-- occupancy/service-level recomputation where inputs remain valid;
-- fleet/block indicators;
-- distance and cost metrics;
-- new `ResultSnapshot` lineage associated with the manual plan;
-- before/after comparison against the parent plan;
-- explicit stale/needs-recalculation states when a dependent model is not yet promoted.
+Integrated checkpoints so far:
 
-## C.6 — Undo/redo, audit, acceptance and density gate — PENDENTE
+- history API exposes ancestors for undo and explicit direct-child redo candidates without destructive history mutation;
+- audit/authorship remain attached to the revision/command lineage;
+- command persistence accepts the promoted `fork`, `move-trip` and `set-trip-express` command types;
+- March trajectories are keyboard-focusable and selectable with pointer, `Enter` and `Space`;
+- `PlanningWorkspace` owns `selectedTripSequence` and propagates it across March Diagram, timetable and vehicle-block markers;
+- selecting the same trip again clears the shared selection;
+- deterministic SVG/Canvas preparation benchmark runs in CI at 250, 1,000 and 5,000 trips, with a 100 ms gate at 1,000 trips;
+- the synthetic benchmark is not treated as evidence of browser rasterization/FPS and therefore does not by itself justify a Canvas migration;
+- default-branch checkpoint `45a9d1d27eb0968db69d3163fba98753be0a0269` passed OferBus CI run `37189812329`.
 
-Close Phase C with production-grade editing safeguards:
+Still required before C.6 can be declared complete:
 
-- undo/redo implemented as revision navigation/derived commands, not destructive history mutation;
-- complete audit trail and authorship;
-- keyboard workflow for expert planners;
-- cross-selection between timetable, blocks and March Diagram;
-- conflict/warning acceptance tests;
-- browser interaction tests for critical commands;
-- SVG/Canvas density benchmark using realistic trip volumes;
-- rendered regression gate for read and edit flows.
+- browser-level interaction tests for the critical selection/edit/history workflows;
+- rendered acceptance of conflict/warning states rather than only the nominal workspace;
+- browser-level density evidence for the March surface, or an explicit, evidence-backed limitation if the CI environment cannot supply a reproducible browser benchmark;
+- final integrated default-branch CI PASS after those gates are materialized.
 
 ## Visualization technology decision
 
