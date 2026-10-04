@@ -90,7 +90,7 @@ def main() -> None:
 
     _, ready = request_json("GET", f"{api_url}/ready")
     assert isinstance(ready, dict) and ready.get("status") == "ready", ready
-    assert ready.get("migration") == "0006_plan_editing", ready
+    assert ready.get("migration") == "0007_plan_edit_command_types", ready
 
     _, identity = request_json("GET", f"{api_url}/identity/me", authenticated=True)
     assert isinstance(identity, dict) and identity.get("organization_id") == str(ORGANIZATION_ID), identity
