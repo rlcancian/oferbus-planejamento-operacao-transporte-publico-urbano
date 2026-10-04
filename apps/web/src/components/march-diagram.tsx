@@ -1,3 +1,5 @@
+"use client";
+
 import type { MarchDirection, MarchPlan, MarchTerminal } from "../lib/oferbus-api";
 import styles from "./march-diagram.module.css";
 
@@ -27,7 +29,15 @@ function directionLabel(direction: MarchDirection): string {
   return `${line} · ${direction.origin.name} → ${direction.destination.name}`;
 }
 
-export function MarchDiagram({ plan }: { plan: MarchPlan }) {
+export function MarchDiagram({
+  plan,
+  selectedTripSequence = null,
+  onSelectTrip,
+}: {
+  plan: MarchPlan;
+  selectedTripSequence?: number | null;
+  onSelectTrip?: (sequence: number) => void;
+}) {
   const directionByKey = new Map(plan.directions.map((direction) => [direction.direction_key, direction]));
   const terminalByKey = new Map<string, MarchTerminal>();
 
@@ -76,7 +86,7 @@ export function MarchDiagram({ plan }: { plan: MarchPlan }) {
         </div>
         <div className={styles.statusGroup}>
           <span className="panel-count">revisão {plan.revision_no}</span>
-          <span className={styles.readOnly}>somente leitura · C.1</span>
+          <span className={styles.readOnly}>seleção sincronizada · C.6</span>
         </div>
       </div>
 
@@ -90,131 +100,51 @@ export function MarchDiagram({ plan }: { plan: MarchPlan }) {
       <div className={styles.directionStrip} aria-label="Sentidos representados">
         {plan.directions.map((direction) => (
           <span key={direction.direction_key} title={directionLabel(direction)}>
-            <b>{direction.direction_key}</b>
-            <i aria-hidden="true">→</i>
+            <b>{direction.direction_key}</b><i aria-hidden="true">→</i>
             {direction.origin.name} / {direction.destination.name}
           </span>
         ))}
       </div>
 
       <div className={styles.canvasWrap}>
-        <svg
-          className={styles.svg}
-          viewBox={`0 0 ${width} ${height}`}
-          role="img"
-          aria-labelledby="march-title march-description"
-        >
+        <svg className={styles.svg} viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby="march-title march-description">
           <title id="march-title">Gráfico de Marcha da revisão {plan.revision_no}</title>
-          <desc id="march-description">
-            Eixo horizontal de tempo e trajetórias de viagens entre terminais. Cada trajetória identifica viagem,
-            sentido e bloco de veículo. Linhas tracejadas representam tempos virtuais quando diferentes dos reais.
-          </desc>
-
+          <desc id="march-description">Eixo horizontal de tempo e trajetórias de viagens entre terminais. As viagens podem ser selecionadas e a seleção é compartilhada com horários e blocos.</desc>
           <rect className={styles.plotBackground} x={left} y={top} width={plotWidth} height={plotHeight} rx="10" />
-
           {ticks.map((tick) => {
             const tickX = x(tick);
-            return (
-              <g key={tick}>
-                <line className={styles.timeGrid} x1={tickX} y1={top} x2={tickX} y2={height - bottom} />
-                <text className={styles.timeLabel} x={tickX} y={top - 18} textAnchor="middle">
-                  {serviceTime(tick)}
-                </text>
-                <text className={styles.timeLabelBottom} x={tickX} y={height - bottom + 30} textAnchor="middle">
-                  {serviceTime(tick)}
-                </text>
-              </g>
-            );
+            return <g key={tick}><line className={styles.timeGrid} x1={tickX} y1={top} x2={tickX} y2={height - bottom} /><text className={styles.timeLabel} x={tickX} y={top - 18} textAnchor="middle">{serviceTime(tick)}</text><text className={styles.timeLabelBottom} x={tickX} y={height - bottom + 30} textAnchor="middle">{serviceTime(tick)}</text></g>;
           })}
-
           {terminals.map(([key, terminal], index) => {
             const railY = yByTerminal.get(key) ?? top;
-            return (
-              <g key={key}>
-                <line className={styles.terminalRail} x1={left} y1={railY} x2={width - right} y2={railY} />
-                <circle className={styles.terminalNode} cx={left - 18} cy={railY} r="5" />
-                <text className={styles.terminalLabel} x={left - 32} y={railY - 4} textAnchor="end">
-                  {terminal.name}
-                </text>
-                <text className={styles.terminalIndex} x={left - 32} y={railY + 14} textAnchor="end">
-                  terminal {index + 1}
-                </text>
-              </g>
-            );
+            return <g key={key}><line className={styles.terminalRail} x1={left} y1={railY} x2={width - right} y2={railY} /><circle className={styles.terminalNode} cx={left - 18} cy={railY} r="5" /><text className={styles.terminalLabel} x={left - 32} y={railY - 4} textAnchor="end">{terminal.name}</text><text className={styles.terminalIndex} x={left - 32} y={railY + 14} textAnchor="end">terminal {index + 1}</text></g>;
           })}
-
           {plan.trips.map((trip) => {
             const direction = directionByKey.get(trip.direction_key);
             if (!direction) return null;
             const originY = yByTerminal.get(terminalKey(direction.origin));
             const destinationY = yByTerminal.get(terminalKey(direction.destination));
             if (originY === undefined || destinationY === undefined) return null;
-
             const classIndex = trip.vehicle_block > 0 ? ((trip.vehicle_block - 1) % 6) + 1 : 0;
             const blockClass = classIndex === 0 ? styles.blockUnassigned : styles[`block${classIndex}` as keyof typeof styles];
-            const virtualDiffers =
-              trip.virtual_departure_service_minute !== trip.departure_service_minute ||
-              trip.virtual_arrival_service_minute !== trip.arrival_service_minute;
+            const virtualDiffers = trip.virtual_departure_service_minute !== trip.departure_service_minute || trip.virtual_arrival_service_minute !== trip.arrival_service_minute;
             const midX = (x(trip.departure_service_minute) + x(trip.arrival_service_minute)) / 2;
             const midY = (originY + destinationY) / 2;
-            const tripTitle = [
-              `Viagem ${trip.sequence_no}`,
-              `${serviceTime(trip.departure_service_minute)} → ${serviceTime(trip.arrival_service_minute)}`,
-              `${direction.origin.name} → ${direction.destination.name}`,
-              `sentido ${trip.direction_key}`,
-              trip.vehicle_block > 0 ? `veículo ${trip.vehicle_block}` : "sem bloco",
-              trip.is_express ? "expresso" : "regular",
-              trip.service_level === null ? "nível de serviço não informado" : `nível de serviço ${trip.service_level}`,
-            ].join(" · ");
-
+            const selected = selectedTripSequence === trip.sequence_no;
+            const tripTitle = [`Viagem ${trip.sequence_no}`, `${serviceTime(trip.departure_service_minute)} → ${serviceTime(trip.arrival_service_minute)}`, `${direction.origin.name} → ${direction.destination.name}`, `sentido ${trip.direction_key}`, trip.vehicle_block > 0 ? `veículo ${trip.vehicle_block}` : "sem bloco", trip.is_express ? "expresso" : "regular"].join(" · ");
             return (
-              <g className={styles.tripGroup} key={trip.sequence_no}>
-                {virtualDiffers ? (
-                  <line
-                    className={styles.virtualTrip}
-                    x1={x(trip.virtual_departure_service_minute)}
-                    y1={originY}
-                    x2={x(trip.virtual_arrival_service_minute)}
-                    y2={destinationY}
-                  />
-                ) : null}
-                <line
-                  className={`${styles.tripLine} ${blockClass} ${trip.is_express ? styles.express : ""}`}
-                  x1={x(trip.departure_service_minute)}
-                  y1={originY}
-                  x2={x(trip.arrival_service_minute)}
-                  y2={destinationY}
-                >
-                  <title>{tripTitle}</title>
-                </line>
-                <circle className={`${styles.tripPoint} ${blockClass}`} cx={x(trip.departure_service_minute)} cy={originY} r="4">
-                  <title>{tripTitle}</title>
-                </circle>
-                <circle className={`${styles.tripPoint} ${blockClass}`} cx={x(trip.arrival_service_minute)} cy={destinationY} r="4">
-                  <title>{tripTitle}</title>
-                </circle>
-                <text className={styles.tripLabel} x={midX + 7} y={midY - 7}>
-                  {trip.sequence_no}
-                </text>
+              <g className={`${styles.tripGroup} ${selected ? styles.selectedTrip : ""}`} key={trip.sequence_no} role="button" tabIndex={0} aria-label={tripTitle} aria-pressed={selected} onClick={() => onSelectTrip?.(trip.sequence_no)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectTrip?.(trip.sequence_no); } }}>
+                {virtualDiffers ? <line className={styles.virtualTrip} x1={x(trip.virtual_departure_service_minute)} y1={originY} x2={x(trip.virtual_arrival_service_minute)} y2={destinationY} /> : null}
+                <line className={`${styles.tripLine} ${blockClass} ${trip.is_express ? styles.express : ""}`} x1={x(trip.departure_service_minute)} y1={originY} x2={x(trip.arrival_service_minute)} y2={destinationY}><title>{tripTitle}</title></line>
+                <circle className={`${styles.tripPoint} ${blockClass}`} cx={x(trip.departure_service_minute)} cy={originY} r="4"><title>{tripTitle}</title></circle>
+                <circle className={`${styles.tripPoint} ${blockClass}`} cx={x(trip.arrival_service_minute)} cy={destinationY} r="4"><title>{tripTitle}</title></circle>
+                <text className={styles.tripLabel} x={midX + 7} y={midY - 7}>{trip.sequence_no}</text>
               </g>
             );
           })}
         </svg>
       </div>
-
-      <div className={styles.legend}>
-        <span className={styles.legendTitle}>Blocos</span>
-        {blocks.map((block) => {
-          const classIndex = ((block - 1) % 6) + 1;
-          const blockClass = styles[`block${classIndex}` as keyof typeof styles];
-          return (
-            <span key={block} className={styles.legendItem}>
-              <i className={`${styles.legendSwatch} ${blockClass}`} aria-hidden="true" /> V{block}
-            </span>
-          );
-        })}
-        <span className={styles.legendNote}>linha tracejada = horário virtual distinto</span>
-      </div>
+      <div className={styles.legend}><span className={styles.legendTitle}>Blocos</span>{blocks.map((block) => { const classIndex = ((block - 1) % 6) + 1; const blockClass = styles[`block${classIndex}` as keyof typeof styles]; return <span key={block} className={styles.legendItem}><i className={`${styles.legendSwatch} ${blockClass}`} aria-hidden="true" /> V{block}</span>; })}<span className={styles.legendNote}>Enter/espaço seleciona · seleção sincronizada com horários e blocos</span></div>
     </section>
   );
 }
